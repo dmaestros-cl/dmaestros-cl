@@ -1,4 +1,12 @@
-export const products = [
+export type CatalogProduct = {
+  sku: string;
+  name: string;
+  image: string;
+  category: string;
+  price?: number;
+};
+
+export const products: readonly CatalogProduct[] = [
   { sku: "DM-M01", name: "Cava bar ovalada de madera", image: "/images/products/cava-ovalada.png", category: "Cavas y bares" },
   { sku: "DM-M02", name: "Mueble TV mural listonado", image: "/images/products/mueble-tv-mural.png", category: "Muebles" },
   { sku: "DM-M03", name: "Rack aparador listonado con cajones", image: "/images/products/rack-aparador-listonado.png", category: "Muebles" },
@@ -18,6 +26,11 @@ export const products = [
   { sku: "DM-J04", name: "El juego de la cerveza · Natural", image: "/images/products/juego-cerveza-natural.png", category: "Juegos de cerveza" },
   { sku: "DM-B01", name: "Mueble Coffee Bar iluminado", image: "/images/products/coffee-bar-iluminado.png", category: "Coffee Bar" },
   { sku: "DM-B02", name: "Estación de café DMaestros", image: "/images/products/estacion-cafe.png", category: "Coffee Bar" },
+  { sku: "DM-D01", name: "Caja decorativa vitrina de roble", image: "/images/products/caja-decorativa-vitrina.webp", category: "Cajas decorativas" },
+  { sku: "DM-E01", name: "Caja de juegos clásicos en nogal", image: "/images/products/caja-juegos-clasicos.webp", category: "Cajas de entretención" },
+  { sku: "DM-L01", name: "Caballo balancín artesanal", image: "/images/products/caballo-balancin-madera.webp", category: "Juguete lúdico decorativo" },
+  { sku: "DM-CM01", name: "Comedor de roble nativo para cuatro personas", image: "/images/products/comedor-roble-nativo.webp", category: "Comedores" },
+  { sku: "DM-P01", name: "Cama curva de roble para mascotas", image: "/images/products/cama-mascota-roble.webp", category: "Mascotas" },
 ] as const;
 
 export const categories = [

@@ -18,6 +18,8 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
     );
     if (sort === "az") return [...filtered].sort((a, b) => a.name.localeCompare(b.name, "es"));
     if (sort === "za") return [...filtered].sort((a, b) => b.name.localeCompare(a.name, "es"));
+    if (sort === "price-asc") return [...filtered].sort((a, b) => a.price == null && b.price == null ? 0 : a.price == null ? 1 : b.price == null ? -1 : a.price - b.price);
+    if (sort === "price-desc") return [...filtered].sort((a, b) => a.price == null && b.price == null ? 0 : a.price == null ? 1 : b.price == null ? -1 : b.price - a.price);
     return filtered;
   }, [selected, sort, query]);
 
@@ -60,6 +62,8 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
           <div className="shop-toolbar">
             <select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Ordenar productos">
               <option value="featured">Ordenar: Destacados</option>
+              <option value="price-asc">Precio: menor a mayor</option>
+              <option value="price-desc">Precio: mayor a menor</option>
               <option value="az">Nombre: A–Z</option>
               <option value="za">Nombre: Z–A</option>
             </select>
@@ -76,7 +80,7 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
                 <p>{product.category} · {product.sku}</p>
                 <h2>{product.name}</h2>
                 <div className="shop-card-actions">
-                  <a href={`mailto:contacto@dmaestros.cl?subject=${encodeURIComponent(`Consulta por ${product.name} (${product.sku})`)}`}>Consultar</a>
+                  <a href={`mailto:contacto@dmaestros.cl?subject=${encodeURIComponent(`Comprar ${product.name} (${product.sku})`)}`}>Comprar</a>
                 </div>
               </article>
             ))}
