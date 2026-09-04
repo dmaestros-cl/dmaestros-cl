@@ -51,7 +51,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
         </div>
         <ResponsiveCategoryNav links={navigation} className="shop-category-nav" ariaLabel="Categorías de la tienda" />
       </header>
-      <div id="catalogo"><ShopCatalog initialCategory={categoria} initialQuery={buscar} /></div>
+      <div id="catalogo"><ShopCatalog key={`${categoria ?? ""}-${buscar ?? ""}`} initialCategory={categoria} initialQuery={buscar} /></div>
     </div>
   );
 }

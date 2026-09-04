@@ -34,7 +34,7 @@ export function ProductSearch({ mobile = false, shop = false }: ProductSearchPro
       onBlur={() => window.setTimeout(() => setFocused(false), 120)}
       role="search"
     >
-      <input name="buscar" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar..." aria-label="Buscar productos" aria-expanded={showSuggestions} aria-controls={suggestionsId} autoComplete="off" />
+      <input name="buscar" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar..." role="combobox" aria-label="Buscar productos" aria-autocomplete="list" aria-expanded={showSuggestions} aria-controls={suggestionsId} autoComplete="off" />
       <button type="submit" aria-label="Buscar"><span aria-hidden="true">⌕</span></button>
       {showSuggestions && (
         <div className="search-suggestions" id={suggestionsId} role="listbox">

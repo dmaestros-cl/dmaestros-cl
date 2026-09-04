@@ -1,21 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { categories, normalizeSearch, products } from "@/lib/catalog";
 
 export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCategory?: string; initialQuery?: string }) {
   const validInitialCategory = initialCategory && categories.some((category) => category === initialCategory) ? initialCategory : undefined;
   const [selected, setSelected] = useState<string[]>(validInitialCategory ? [validInitialCategory] : []);
   const [sort, setSort] = useState("featured");
-  const [query, setQuery] = useState(initialQuery);
   const [filtersOpen, setFiltersOpen] = useState(false);
-
-  useEffect(() => {
-    setSelected(validInitialCategory ? [validInitialCategory] : []);
-  }, [validInitialCategory]);
-
-  useEffect(() => setQuery(initialQuery), [initialQuery]);
+  const query = initialQuery;
 
   const visible = useMemo(() => {
     const filtered = products.filter((product) =>
@@ -36,9 +30,9 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
       <div className="shop-layout">
         <aside className="shop-filters">
           <div className="shop-filter-heading">
-            <h2>Filtrar por</h2>
+            <h2>Filtros</h2>
             <button type="button" aria-expanded={filtersOpen} aria-controls="shop-filter-options" onClick={() => setFiltersOpen((open) => !open)}>
-              <span>{selected.length ? `${selected.length} activo${selected.length === 1 ? "" : "s"}` : "Ver filtros"}</span>
+              <span className={selected.length ? "filter-status is-active" : "filter-status"}>{selected.length ? `${selected.length} activo${selected.length === 1 ? "" : "s"}` : "Ver opciones"}</span>
               <span className="filter-chevron" aria-hidden="true" />
             </button>
           </div>
@@ -64,7 +58,6 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
 
         <section className="shop-results" aria-live="polite">
           <div className="shop-toolbar">
-            <label className="shop-search"><span className="sr-only">Buscar productos</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar en la tienda..." /></label>
             <select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Ordenar productos">
               <option value="featured">Ordenar: Destacados</option>
               <option value="az">Nombre: A–Z</option>
