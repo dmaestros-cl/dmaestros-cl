@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ShopCatalog } from "@/components/ShopCatalog";
+import { ResponsiveCategoryNav, type CategoryNavLink } from "@/components/ResponsiveCategoryNav";
 
 export const metadata: Metadata = {
   title: "Tienda | DMaestros",
@@ -16,10 +17,11 @@ function ShopIcon({ name }: { name: "pin" | "user" | "cart" }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
 }
 
-const navigation = [
-  ["Tienda", "/tienda"], ["Muebles", "/tienda?categoria=Muebles#catalogo"], ["Cavas y bares", "/tienda?categoria=Cavas%20y%20bares#catalogo"],
-  ["Cajas para corchos", "/tienda?categoria=Cajas%20para%20corchos#catalogo"], ["Cajas mixtas", "/tienda?categoria=Cajas%20mixtas#catalogo"], ["Juegos de cerveza", "/tienda?categoria=Juegos%20de%20cerveza#catalogo"],
-  ["Coffee Bar", "/tienda?categoria=Coffee%20Bar#catalogo"], ["Pedidos especiales", "/#whatsapp"],
+const navigation: CategoryNavLink[] = [
+  { label: "Tienda", href: "/tienda" }, { label: "Muebles", href: "/tienda?categoria=Muebles#catalogo" }, { label: "Comedores", href: "/tienda?categoria=Comedores#catalogo" },
+  { label: "Cavas y bares", href: "/tienda?categoria=Cavas%20y%20bares#catalogo" }, { label: "Cajas para corchos", href: "/tienda?categoria=Cajas%20para%20corchos#catalogo" }, { label: "Cajas mixtas", href: "/tienda?categoria=Cajas%20mixtas#catalogo" },
+  { label: "Cajas decorativas", href: "/tienda?categoria=Cajas%20decorativas#catalogo" }, { label: "Cajas de entretención", href: "/tienda?categoria=Cajas%20de%20entretenci%C3%B3n#catalogo" }, { label: "Juegos de cerveza", href: "/tienda?categoria=Juegos%20de%20cerveza#catalogo" },
+  { label: "Juguete lúdico decorativo", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo" }, { label: "Coffee Bar", href: "/tienda?categoria=Coffee%20Bar#catalogo" }, { label: "Mascotas", href: "/tienda?categoria=Mascotas#catalogo" }, { label: "Pedidos especiales", href: "/#whatsapp" },
 ];
 
 export default async function StorePage({ searchParams }: { searchParams: Promise<{ categoria?: string }> }) {
@@ -46,9 +48,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
             <a href="#catalogo"><ShopIcon name="cart" /><span>Carro</span></a>
           </nav>
         </div>
-        <nav className="shop-category-nav" aria-label="Categorías de la tienda">
-          {navigation.map(([label, href]) => <Link href={href} key={label}>{label}</Link>)}
-        </nav>
+        <ResponsiveCategoryNav links={navigation} className="shop-category-nav" ariaLabel="Categorías de la tienda" />
       </header>
       <div id="catalogo"><ShopCatalog initialCategory={categoria} /></div>
     </div>

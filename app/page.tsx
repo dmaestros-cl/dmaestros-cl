@@ -3,6 +3,7 @@ import { MobileHeroCarousel } from "@/components/MobileHeroCarousel";
 import { DesktopHeroCarousel } from "@/components/DesktopHeroCarousel";
 import { MobileMenu } from "@/components/MobileMenu";
 import { ProductSearch } from "@/components/ProductSearch";
+import { ResponsiveCategoryNav } from "@/components/ResponsiveCategoryNav";
 
 function Icon({ name }: { name: "search" | "location" | "user" | "cart" | "menu" | "arrow" }) {
   const paths = {
@@ -19,11 +20,16 @@ function Icon({ name }: { name: "search" | "location" | "user" | "cart" | "menu"
 const headerCategories = [
   { label: "TIENDA", href: "/tienda" },
   { label: "MUEBLES", href: "/tienda?categoria=Muebles#catalogo" },
+  { label: "COMEDORES", href: "/tienda?categoria=Comedores#catalogo" },
   { label: "CAVAS Y BARES", href: "/tienda?categoria=Cavas%20y%20bares#catalogo" },
   { label: "CAJAS PARA CORCHOS", href: "/tienda?categoria=Cajas%20para%20corchos#catalogo" },
   { label: "CAJAS MIXTAS", href: "/tienda?categoria=Cajas%20mixtas#catalogo" },
+  { label: "CAJAS DECORATIVAS", href: "/tienda?categoria=Cajas%20decorativas#catalogo" },
+  { label: "CAJAS DE ENTRETENCIÓN", href: "/tienda?categoria=Cajas%20de%20entretenci%C3%B3n#catalogo" },
   { label: "JUEGOS DE CERVEZA", href: "/tienda?categoria=Juegos%20de%20cerveza#catalogo" },
+  { label: "JUGUETE LÚDICO DECORATIVO", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo" },
   { label: "COFFEE BAR", href: "/tienda?categoria=Coffee%20Bar#catalogo" },
+  { label: "MASCOTAS", href: "/tienda?categoria=Mascotas#catalogo" },
   { label: "PEDIDOS ESPECIALES", href: "#whatsapp" },
 ];
 
@@ -106,9 +112,7 @@ export default function Home() {
         </div>
         <nav className="navline" aria-label="Navegación principal">
           <span className="mobile-menu-label">MENU</span>
-          <div className="desktop-links">
-            {headerCategories.map(({ label, href }) => <a href={href} key={label}>{label}</a>)}
-          </div>
+          <ResponsiveCategoryNav links={headerCategories} className="desktop-links" ariaLabel="Categorías" />
           <button type="button" aria-label="Abrir menú"><Icon name="menu" /></button>
         </nav>
       </header>
@@ -127,7 +131,7 @@ export default function Home() {
         <div className="featured-collections" aria-label="Colecciones destacadas">
           {featuredCollections.map((collection) => (
             <a className="featured-collection-card" href={collection.href} key={collection.label}>
-              <Image src={collection.image} alt={collection.label} fill sizes="(max-width: 899px) 72vw, 240px" />
+              <Image src={collection.image} alt={collection.label} fill sizes="(max-width: 899px) 50vw, 240px" />
               <strong>{collection.label}</strong>
             </a>
           ))}

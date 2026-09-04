@@ -25,7 +25,19 @@ const products = [
   { sku: "DM-B02", name: "Estación de café DMaestros", image: "/images/products/estacion-cafe.png", category: "Coffee Bar" },
 ];
 
-const categories = ["Muebles", "Cavas y bares", "Cajas para corchos", "Cajas mixtas", "Juegos de cerveza", "Coffee Bar"];
+const categories = [
+  "Muebles",
+  "Comedores",
+  "Cavas y bares",
+  "Cajas para corchos",
+  "Cajas mixtas",
+  "Cajas decorativas",
+  "Cajas de entretención",
+  "Juegos de cerveza",
+  "Juguete lúdico decorativo",
+  "Coffee Bar",
+  "Mascotas",
+];
 
 export function ShopCatalog({ initialCategory }: { initialCategory?: string }) {
   const validInitialCategory = initialCategory && categories.includes(initialCategory) ? initialCategory : undefined;

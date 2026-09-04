@@ -4,11 +4,16 @@ import { useState } from "react";
 
 const links = [
   ["Muebles", "/tienda?categoria=Muebles#catalogo"],
+  ["Comedores", "/tienda?categoria=Comedores#catalogo"],
   ["Cavas y bares", "/tienda?categoria=Cavas%20y%20bares#catalogo"],
   ["Cajas para corchos", "/tienda?categoria=Cajas%20para%20corchos#catalogo"],
   ["Cajas mixtas", "/tienda?categoria=Cajas%20mixtas#catalogo"],
+  ["Cajas decorativas", "/tienda?categoria=Cajas%20decorativas#catalogo"],
+  ["Cajas de entretención", "/tienda?categoria=Cajas%20de%20entretenci%C3%B3n#catalogo"],
   ["Juegos de cerveza", "/tienda?categoria=Juegos%20de%20cerveza#catalogo"],
+  ["Juguete lúdico decorativo", "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo"],
   ["Coffee Bar", "/tienda?categoria=Coffee%20Bar#catalogo"],
+  ["Mascotas", "/tienda?categoria=Mascotas#catalogo"],
 ];
 
 export function MobileMenu() {
