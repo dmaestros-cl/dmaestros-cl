@@ -72,7 +72,7 @@ export function SiteFooter() {
       <div className="footer-bottom">
         <p><span aria-hidden="true">©</span> Copyright {new Date().getFullYear()} DMaestros. Todos los derechos reservados.</p>
         <div className="payment-methods" aria-label="Medios de pago">
-          <span><Image src="/images/brands/mercadopago.svg" alt="Mercado Pago" width={74} height={25} /></span>
+          <span className="webpay-plus-badge"><Image src="/images/brands/webpay-plus.jpg" alt="Webpay Plus de Transbank" width={96} height={96} /></span>
           <span><Image src="/images/brands/mastercard.svg" alt="Mastercard" width={38} height={24} /></span>
           <span><Image src="/images/brands/visa.svg" alt="Visa" width={55} height={20} /></span>
           <span><Image src="/images/brands/americanexpress.svg" alt="American Express" width={31} height={25} /></span>
