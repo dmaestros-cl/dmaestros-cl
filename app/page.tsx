@@ -18,12 +18,12 @@ function Icon({ name }: { name: "search" | "location" | "user" | "cart" | "menu"
 
 const headerCategories = [
   { label: "TIENDA", href: "/tienda" },
-  { label: "MUEBLES", href: "#productos" },
-  { label: "CAVAS Y BARES", href: "#productos" },
-  { label: "CAJAS PARA CORCHOS", href: "#productos-bar" },
-  { label: "CAJAS MIXTAS", href: "#productos-bar" },
-  { label: "JUEGOS DE CERVEZA", href: "#productos-bar" },
-  { label: "COFFEE BAR", href: "#productos-bar" },
+  { label: "MUEBLES", href: "/tienda?categoria=Muebles#catalogo" },
+  { label: "CAVAS Y BARES", href: "/tienda?categoria=Cavas%20y%20bares#catalogo" },
+  { label: "CAJAS PARA CORCHOS", href: "/tienda?categoria=Cajas%20para%20corchos#catalogo" },
+  { label: "CAJAS MIXTAS", href: "/tienda?categoria=Cajas%20mixtas#catalogo" },
+  { label: "JUEGOS DE CERVEZA", href: "/tienda?categoria=Juegos%20de%20cerveza#catalogo" },
+  { label: "COFFEE BAR", href: "/tienda?categoria=Coffee%20Bar#catalogo" },
   { label: "PEDIDOS ESPECIALES", href: "#whatsapp" },
 ];
 

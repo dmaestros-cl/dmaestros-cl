@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const products = [
   { sku: "DM-M01", name: "Cava bar ovalada de madera", image: "/images/products/cava-ovalada.png", category: "Cavas y bares" },
@@ -27,10 +27,15 @@ const products = [
 
 const categories = ["Muebles", "Cavas y bares", "Cajas para corchos", "Cajas mixtas", "Juegos de cerveza", "Coffee Bar"];
 
-export function ShopCatalog() {
-  const [selected, setSelected] = useState<string[]>([]);
+export function ShopCatalog({ initialCategory }: { initialCategory?: string }) {
+  const validInitialCategory = initialCategory && categories.includes(initialCategory) ? initialCategory : undefined;
+  const [selected, setSelected] = useState<string[]>(validInitialCategory ? [validInitialCategory] : []);
   const [sort, setSort] = useState("featured");
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    setSelected(validInitialCategory ? [validInitialCategory] : []);
+  }, [validInitialCategory]);
 
   const visible = useMemo(() => {
     const filtered = products.filter((product) =>

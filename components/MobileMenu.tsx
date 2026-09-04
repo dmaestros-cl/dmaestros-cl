@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 
-const links = [["Muebles", "#productos"], ["Cavas y bares", "#productos"], ["Cajas para corchos", "#productos-bar"], ["Cajas mixtas", "#productos-bar"], ["Juegos de cerveza", "#productos-bar"], ["Coffee Bar", "#productos-bar"]];
+const links = [
+  ["Muebles", "/tienda?categoria=Muebles#catalogo"],
+  ["Cavas y bares", "/tienda?categoria=Cavas%20y%20bares#catalogo"],
+  ["Cajas para corchos", "/tienda?categoria=Cajas%20para%20corchos#catalogo"],
+  ["Cajas mixtas", "/tienda?categoria=Cajas%20mixtas#catalogo"],
+  ["Juegos de cerveza", "/tienda?categoria=Juegos%20de%20cerveza#catalogo"],
+  ["Coffee Bar", "/tienda?categoria=Coffee%20Bar#catalogo"],
+];
 
 export function MobileMenu() {
   const [open, setOpen] = useState(false);

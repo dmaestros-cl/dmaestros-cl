@@ -17,12 +17,14 @@ function ShopIcon({ name }: { name: "pin" | "user" | "cart" }) {
 }
 
 const navigation = [
-  ["Tienda", "/tienda"], ["Muebles", "/tienda#catalogo"], ["Cavas y bares", "/tienda#catalogo"],
-  ["Cajas para corchos", "/tienda#catalogo"], ["Cajas mixtas", "/tienda#catalogo"], ["Juegos de cerveza", "/tienda#catalogo"],
-  ["Coffee Bar", "/tienda#catalogo"], ["Pedidos especiales", "/#whatsapp"],
+  ["Tienda", "/tienda"], ["Muebles", "/tienda?categoria=Muebles#catalogo"], ["Cavas y bares", "/tienda?categoria=Cavas%20y%20bares#catalogo"],
+  ["Cajas para corchos", "/tienda?categoria=Cajas%20para%20corchos#catalogo"], ["Cajas mixtas", "/tienda?categoria=Cajas%20mixtas#catalogo"], ["Juegos de cerveza", "/tienda?categoria=Juegos%20de%20cerveza#catalogo"],
+  ["Coffee Bar", "/tienda?categoria=Coffee%20Bar#catalogo"], ["Pedidos especiales", "/#whatsapp"],
 ];
 
-export default function StorePage() {
+export default async function StorePage({ searchParams }: { searchParams: Promise<{ categoria?: string }> }) {
+  const { categoria } = await searchParams;
+
   return (
     <div className="shop-shell">
       <header className="shop-site-header">
@@ -48,7 +50,7 @@ export default function StorePage() {
           {navigation.map(([label, href]) => <Link href={href} key={label}>{label}</Link>)}
         </nav>
       </header>
-      <div id="catalogo"><ShopCatalog /></div>
+      <div id="catalogo"><ShopCatalog initialCategory={categoria} /></div>
     </div>
   );
 }
