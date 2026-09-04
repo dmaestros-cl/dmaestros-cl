@@ -9,6 +9,7 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
   const [selected, setSelected] = useState<string[]>(validInitialCategory ? [validInitialCategory] : []);
   const [sort, setSort] = useState("featured");
   const [query, setQuery] = useState(initialQuery);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     setSelected(validInitialCategory ? [validInitialCategory] : []);
@@ -34,23 +35,31 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
     <main className="shop-page">
       <div className="shop-layout">
         <aside className="shop-filters">
-          <h2>Filtrar por</h2>
-          <div className="filter-group">
-            <h3>Categorías</h3>
-            {categories.map((category) => (
-              <label key={category}>
-                <input type="checkbox" checked={selected.includes(category)} onChange={() => toggleCategory(category)} />
-                <span>{category}</span>
-              </label>
-            ))}
+          <div className="shop-filter-heading">
+            <h2>Filtrar por</h2>
+            <button type="button" aria-expanded={filtersOpen} aria-controls="shop-filter-options" onClick={() => setFiltersOpen((open) => !open)}>
+              <span>{selected.length ? `${selected.length} activo${selected.length === 1 ? "" : "s"}` : "Ver filtros"}</span>
+              <span className="filter-chevron" aria-hidden="true" />
+            </button>
           </div>
-          <div className="filter-group">
-            <h3>Terminación</h3>
-            <label><input type="checkbox" /><span>Madera natural</span></label>
-            <label><input type="checkbox" /><span>Tono nogal</span></label>
-            <label><input type="checkbox" /><span>Combinado</span></label>
+          <div className={`shop-filter-options${filtersOpen ? " is-open" : ""}`} id="shop-filter-options">
+            <div className="filter-group">
+              <h3>Categorías</h3>
+              {categories.map((category) => (
+                <label key={category}>
+                  <input type="checkbox" checked={selected.includes(category)} onChange={() => toggleCategory(category)} />
+                  <span>{category}</span>
+                </label>
+              ))}
+            </div>
+            <div className="filter-group">
+              <h3>Terminación</h3>
+              <label><input type="checkbox" /><span>Madera natural</span></label>
+              <label><input type="checkbox" /><span>Tono nogal</span></label>
+              <label><input type="checkbox" /><span>Combinado</span></label>
+            </div>
+            {selected.length > 0 && <button className="clear-filters" type="button" onClick={() => setSelected([])}>Limpiar filtros</button>}
           </div>
-          {selected.length > 0 && <button className="clear-filters" type="button" onClick={() => setSelected([])}>Limpiar filtros</button>}
         </aside>
 
         <section className="shop-results" aria-live="polite">

@@ -15,8 +15,8 @@ const slides = [
 
 function HeroMark() {
   return (
-    <svg className="carousel-mark-real" viewBox="0 0 415 328" aria-hidden="true">
-      <image href="/images/logo-mark-transparent-v2.png" width="415" height="328" />
+    <svg className="carousel-mark-real" viewBox="0 0 415 352" aria-hidden="true">
+      <image href="/images/logo-mark-transparent-v3.png" width="415" height="352" />
     </svg>
   );
 }
