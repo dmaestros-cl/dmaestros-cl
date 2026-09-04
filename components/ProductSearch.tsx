@@ -1,33 +1,52 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import Image from "next/image";
+import { FormEvent, useId, useMemo, useState } from "react";
+import { normalizeSearch, products } from "@/lib/catalog";
 
-export function ProductSearch({ mobile = false }: { mobile?: boolean }) {
-  const [message, setMessage] = useState("");
+type ProductSearchProps = { mobile?: boolean; shop?: boolean };
+
+export function ProductSearch({ mobile = false, shop = false }: ProductSearchProps) {
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const suggestionsId = useId();
+  const normalizedQuery = normalizeSearch(query);
+  const matches = useMemo(() => {
+    if (!normalizedQuery) return [];
+    return products.filter((product) =>
+      normalizeSearch(`${product.name} ${product.category} ${product.sku}`).includes(normalizedQuery),
+    ).slice(0, 6);
+  }, [normalizedQuery]);
+
+  const showSuggestions = focused && Boolean(normalizedQuery);
+  const resultHref = (name: string) => `/tienda?buscar=${encodeURIComponent(name)}#catalogo`;
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const query = String(form.get("buscar") ?? "").trim().toLocaleLowerCase("es");
-    if (!query) return;
-    const products = Array.from(document.querySelectorAll<HTMLElement>("[data-product-name]"));
-    const match = products.find((product) => product.dataset.productName?.toLocaleLowerCase("es").includes(query));
-    if (match) {
-      setMessage("");
-      match.scrollIntoView({ behavior: "smooth", block: "center" });
-      match.classList.remove("search-match");
-      window.setTimeout(() => match.classList.add("search-match"), 10);
-      window.setTimeout(() => match.classList.remove("search-match"), 1800);
-    } else {
-      setMessage("No encontramos ese producto. Escríbenos por WhatsApp.");
-    }
+    if (matches[0]) window.location.assign(resultHref(matches[0].name));
   }
 
   return (
-    <form className={mobile ? "mobile-search-hit" : "search"} onSubmit={search} role="search">
-      <input name="buscar" placeholder="Buscar..." aria-label="Buscar productos" />
+    <form
+      className={shop ? "shop-header-search" : mobile ? "mobile-search-hit" : "search"}
+      onSubmit={search}
+      onFocus={() => setFocused(true)}
+      onBlur={() => window.setTimeout(() => setFocused(false), 120)}
+      role="search"
+    >
+      <input name="buscar" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar..." aria-label="Buscar productos" aria-expanded={showSuggestions} aria-controls={suggestionsId} autoComplete="off" />
       <button type="submit" aria-label="Buscar"><span aria-hidden="true">⌕</span></button>
-      <span className="search-feedback" role="status">{message}</span>
+      {showSuggestions && (
+        <div className="search-suggestions" id={suggestionsId} role="listbox">
+          {matches.length ? matches.map((product) => (
+            <a href={resultHref(product.name)} className="search-suggestion" role="option" aria-selected="false" key={product.sku}>
+              <span className="search-suggestion-image"><Image src={product.image} alt="" fill sizes="64px" /></span>
+              <span className="search-suggestion-copy"><strong>{product.name}</strong><small>{product.category} · {product.sku}</small></span>
+              <span className="search-suggestion-arrow" aria-hidden="true">→</span>
+            </a>
+          )) : <p className="search-empty" role="status">No encontramos productos con “{query}”.</p>}
+        </div>
+      )}
     </form>
   );
 }

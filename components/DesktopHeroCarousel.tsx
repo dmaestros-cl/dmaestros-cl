@@ -10,16 +10,13 @@ const slides = [
   { image: "/images/editorial/furniture.webp", alt: "Mueble artesanal de madera", title: <>MUEBLES</>, description: <>Diseños que aportan estilo<br/>y originalidad a tus espacios.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Muebles#catalogo", position: "65% bottom" },
   { image: "/images/hero/comedor-artesanal.webp", alt: "Comedor fabricado en madera nativa", title: <>COMEDORES</>, description: <>Diseños modernos con estilo y personalidad,<br/>fabricados en maderas nativas.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Comedores#catalogo", position: "70% bottom" },
   { image: "/images/hero/mascotas-artesanal.webp", alt: "Mueble de madera diseñado para mascotas", title: <>MASCOTAS</>, description: <>Porque nuestras mascotas también necesitan<br/>estilo y elegancia.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Mascotas#catalogo", position: "70% bottom" },
-  { image: "/images/hero/pedidos-especiales.webp", alt: "Mueble especial fabricado a medida", title: <>PEDIDOS<br/>ESPECIALES</>, description: <>Tu mueble ideal<br/>lo hacemos realidad.</>, cta: "COTIZAR PROYECTO", href: "https://wa.me/?text=Hola%20DMaestros%2C%20quiero%20cotizar%20un%20pedido%20especial.", position: "55% bottom" },
+  { image: "/images/hero/pedidos-especiales.webp", alt: "Mueble especial fabricado a medida", title: <>PEDIDOS<br/>ESPECIALES</>, description: <>Tu mueble ideal<br/>lo hacemos realidad.</>, cta: "COTIZAR PROYECTO", href: "mailto:contacto@dmaestros.cl?subject=Pedido%20especial", position: "55% bottom" },
 ];
 
 function HeroMark() {
   return (
     <svg className="carousel-mark-real" viewBox="0 0 415 328" aria-hidden="true">
-      <filter id="transparent-logo-desktop" colorInterpolationFilters="sRGB">
-        <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 2.94" />
-      </filter>
-      <image href="/images/logo-dmaestros.png" width="1348" height="328" filter="url(#transparent-logo-desktop)" />
+      <image href="/images/logo-mark-transparent-v2.png" width="415" height="328" />
     </svg>
   );
 }

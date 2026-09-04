@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ShopCatalog } from "@/components/ShopCatalog";
+import { ProductSearch } from "@/components/ProductSearch";
 import { ResponsiveCategoryNav, type CategoryNavLink } from "@/components/ResponsiveCategoryNav";
 
 export const metadata: Metadata = {
@@ -21,11 +22,11 @@ const navigation: CategoryNavLink[] = [
   { label: "Tienda", href: "/tienda" }, { label: "Muebles", href: "/tienda?categoria=Muebles#catalogo" }, { label: "Comedores", href: "/tienda?categoria=Comedores#catalogo" },
   { label: "Cavas y bares", href: "/tienda?categoria=Cavas%20y%20bares#catalogo" }, { label: "Cajas para corchos", href: "/tienda?categoria=Cajas%20para%20corchos#catalogo" }, { label: "Cajas mixtas", href: "/tienda?categoria=Cajas%20mixtas#catalogo" },
   { label: "Cajas decorativas", href: "/tienda?categoria=Cajas%20decorativas#catalogo" }, { label: "Cajas de entretención", href: "/tienda?categoria=Cajas%20de%20entretenci%C3%B3n#catalogo" }, { label: "Juegos de cerveza", href: "/tienda?categoria=Juegos%20de%20cerveza#catalogo" },
-  { label: "Juguete lúdico decorativo", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo" }, { label: "Coffee Bar", href: "/tienda?categoria=Coffee%20Bar#catalogo" }, { label: "Mascotas", href: "/tienda?categoria=Mascotas#catalogo" }, { label: "Pedidos especiales", href: "/#whatsapp" },
+  { label: "Juguete lúdico decorativo", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo" }, { label: "Coffee Bar", href: "/tienda?categoria=Coffee%20Bar#catalogo" }, { label: "Mascotas", href: "/tienda?categoria=Mascotas#catalogo" }, { label: "Pedidos especiales", href: "mailto:contacto@dmaestros.cl?subject=Pedido%20especial" },
 ];
 
-export default async function StorePage({ searchParams }: { searchParams: Promise<{ categoria?: string }> }) {
-  const { categoria } = await searchParams;
+export default async function StorePage({ searchParams }: { searchParams: Promise<{ categoria?: string; buscar?: string }> }) {
+  const { categoria, buscar } = await searchParams;
 
   return (
     <div className="shop-shell">
@@ -41,16 +42,16 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
           </Link>
           <span className="shop-logo-divider" aria-hidden="true" />
           <strong>store</strong>
-          <label className="shop-header-search"><span className="sr-only">Buscar</span><input placeholder="Buscar..." /></label>
+          <ProductSearch shop />
           <nav className="shop-header-actions" aria-label="Accesos rápidos">
             <a href="#catalogo"><ShopIcon name="pin" /><span>Tienda</span></a>
-            <a href="/#whatsapp"><ShopIcon name="user" /><span>Mi cuenta</span></a>
+            <a href="/tienda"><ShopIcon name="user" /><span>Mi cuenta</span></a>
             <a href="#catalogo"><ShopIcon name="cart" /><span>Carro</span></a>
           </nav>
         </div>
         <ResponsiveCategoryNav links={navigation} className="shop-category-nav" ariaLabel="Categorías de la tienda" />
       </header>
-      <div id="catalogo"><ShopCatalog initialCategory={categoria} /></div>
+      <div id="catalogo"><ShopCatalog initialCategory={categoria} initialQuery={buscar} /></div>
     </div>
   );
 }

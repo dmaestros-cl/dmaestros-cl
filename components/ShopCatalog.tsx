@@ -2,57 +2,24 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { categories, normalizeSearch, products } from "@/lib/catalog";
 
-const products = [
-  { sku: "DM-M01", name: "Cava bar ovalada de madera", image: "/images/products/cava-ovalada.png", category: "Cavas y bares" },
-  { sku: "DM-M02", name: "Mueble TV mural listonado", image: "/images/products/mueble-tv-mural.png", category: "Muebles" },
-  { sku: "DM-M03", name: "Rack aparador listonado con cajones", image: "/images/products/rack-aparador-listonado.png", category: "Muebles" },
-  { sku: "DM-M04", name: "Centro de entretenimiento modular", image: "/images/products/centro-entretenimiento.png", category: "Muebles" },
-  { sku: "DM-M05", name: "Buffet listonado de madera", image: "/images/products/buffet-listonado.png", category: "Muebles" },
-  { sku: "DM-M06", name: "Buffet clásico de cuatro puertas", image: "/images/products/buffet-cuatro-puertas.png", category: "Muebles" },
-  { sku: "DM-C01", name: "Caja para corchos · El vino mejora con la edad", image: "/images/products/caja-vino-mejora-edad.png", category: "Cajas para corchos" },
-  { sku: "DM-C02", name: "Caja para corchos · El mejor vino se comparte", image: "/images/products/caja-mejor-vino-compania.png", category: "Cajas para corchos" },
-  { sku: "DM-C03", name: "Caja para corchos · Ven, yo invito al vino", image: "/images/products/caja-yo-invito-vino.png", category: "Cajas para corchos" },
-  { sku: "DM-C04", name: "Caja para corchos · Momentos inolvidables", image: "/images/products/caja-corchos-momentos.png", category: "Cajas para corchos" },
-  { sku: "DM-C05", name: "Caja para corchos · Testigo de buenos momentos", image: "/images/products/caja-corchos-testigo.png", category: "Cajas para corchos" },
-  { sku: "DM-C06", name: "Caja mixta para tapas y corchos · Salucita", image: "/images/products/caja-mixta-salucita.png", category: "Cajas mixtas" },
-  { sku: "DM-C07", name: "Caja coleccionadora para cerveza y vino", image: "/images/products/caja-cerveza-vino.png", category: "Cajas mixtas" },
-  { sku: "DM-J01", name: "Juego destapador de cerveza · Nogal", image: "/images/products/juego-cerveza-nogal-vertical.png", category: "Juegos de cerveza" },
-  { sku: "DM-J02", name: "Juego destapador de cerveza · Natural", image: "/images/products/juego-cerveza-natural-vertical.png", category: "Juegos de cerveza" },
-  { sku: "DM-J03", name: "El juego de la cerveza · Nogal", image: "/images/products/juego-cerveza-nogal.png", category: "Juegos de cerveza" },
-  { sku: "DM-J04", name: "El juego de la cerveza · Natural", image: "/images/products/juego-cerveza-natural.png", category: "Juegos de cerveza" },
-  { sku: "DM-B01", name: "Mueble Coffee Bar iluminado", image: "/images/products/coffee-bar-iluminado.png", category: "Coffee Bar" },
-  { sku: "DM-B02", name: "Estación de café DMaestros", image: "/images/products/estacion-cafe.png", category: "Coffee Bar" },
-];
-
-const categories = [
-  "Muebles",
-  "Comedores",
-  "Cavas y bares",
-  "Cajas para corchos",
-  "Cajas mixtas",
-  "Cajas decorativas",
-  "Cajas de entretención",
-  "Juegos de cerveza",
-  "Juguete lúdico decorativo",
-  "Coffee Bar",
-  "Mascotas",
-];
-
-export function ShopCatalog({ initialCategory }: { initialCategory?: string }) {
-  const validInitialCategory = initialCategory && categories.includes(initialCategory) ? initialCategory : undefined;
+export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCategory?: string; initialQuery?: string }) {
+  const validInitialCategory = initialCategory && categories.some((category) => category === initialCategory) ? initialCategory : undefined;
   const [selected, setSelected] = useState<string[]>(validInitialCategory ? [validInitialCategory] : []);
   const [sort, setSort] = useState("featured");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
 
   useEffect(() => {
     setSelected(validInitialCategory ? [validInitialCategory] : []);
   }, [validInitialCategory]);
 
+  useEffect(() => setQuery(initialQuery), [initialQuery]);
+
   const visible = useMemo(() => {
     const filtered = products.filter((product) =>
       (!selected.length || selected.includes(product.category)) &&
-      product.name.toLocaleLowerCase("es").includes(query.toLocaleLowerCase("es")),
+      normalizeSearch(`${product.name} ${product.category} ${product.sku}`).includes(normalizeSearch(query)),
     );
     if (sort === "az") return [...filtered].sort((a, b) => a.name.localeCompare(b.name, "es"));
     if (sort === "za") return [...filtered].sort((a, b) => b.name.localeCompare(a.name, "es"));
@@ -107,7 +74,7 @@ export function ShopCatalog({ initialCategory }: { initialCategory?: string }) {
                 <p>{product.category} · {product.sku}</p>
                 <h2>{product.name}</h2>
                 <div className="shop-card-actions">
-                  <a href={`https://wa.me/?text=${encodeURIComponent(`Hola DMaestros, quiero consultar por ${product.name} (${product.sku}).`)}`} target="_blank" rel="noopener noreferrer">Consultar</a>
+                  <a href={`mailto:contacto@dmaestros.cl?subject=${encodeURIComponent(`Consulta por ${product.name} (${product.sku})`)}`}>Consultar</a>
                 </div>
               </article>
             ))}

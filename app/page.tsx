@@ -30,7 +30,7 @@ const headerCategories = [
   { label: "JUGUETE LÚDICO DECORATIVO", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo" },
   { label: "COFFEE BAR", href: "/tienda?categoria=Coffee%20Bar#catalogo" },
   { label: "MASCOTAS", href: "/tienda?categoria=Mascotas#catalogo" },
-  { label: "PEDIDOS ESPECIALES", href: "https://wa.me/?text=Hola%20DMaestros%2C%20quiero%20hacer%20una%20consulta." },
+  { label: "PEDIDOS ESPECIALES", href: "mailto:contacto@dmaestros.cl?subject=Pedido%20especial" },
 ];
 
 const categoryBanners = [
@@ -40,7 +40,7 @@ const categoryBanners = [
   { title: "Muebles", description: "Diseños que aportan estilo y originalidad a tus espacios.", image: "/images/editorial/furniture.webp", href: "/tienda?categoria=Muebles#catalogo" },
   { title: "Comedores", description: "Modernos diseños con estilo y personalidad para tu hogar. Fabricados en maderas nativas.", image: "/images/hero/comedor-artesanal.png", href: "/tienda?categoria=Comedores#catalogo" },
   { title: "Mascotas", description: "Porque nuestras mascotas también necesitan estilo y elegancia.", image: "/images/hero/mascotas-artesanal.png", href: "/tienda?categoria=Mascotas#catalogo" },
-  { title: "Pedidos especiales", description: "Tu mueble ideal lo hacemos realidad.", image: "/images/banners/pedidos-especiales-premium.png", href: "https://wa.me/?text=Hola%20DMaestros%2C%20quiero%20cotizar%20un%20pedido%20especial." },
+  { title: "Pedidos especiales", description: "Tu mueble ideal lo hacemos realidad.", image: "/images/banners/pedidos-especiales-premium.png", href: "mailto:contacto@dmaestros.cl?subject=Pedido%20especial" },
 ];
 
 export default function Home() {
@@ -57,7 +57,7 @@ export default function Home() {
             </svg>
           </a>
           <ProductSearch mobile />
-          <a className="mobile-header-action" href="#whatsapp" aria-label="Mi cuenta"><Icon name="user" /></a>
+          <a className="mobile-header-action" href="/tienda" aria-label="Mi cuenta"><Icon name="user" /></a>
           <a className="mobile-header-action" href="/tienda" aria-label="Carro"><Icon name="cart" /></a>
         </div>
         <div className="topbar">
@@ -80,7 +80,7 @@ export default function Home() {
           <ProductSearch />
           <nav className="header-actions" aria-label="Accesos rápidos">
             <a className="header-action location-action" href="/tienda"><Icon name="location" /><span>Tienda</span></a>
-            <a className="header-action" href="#whatsapp"><Icon name="user" /><span>Mi Cuenta</span></a>
+            <a className="header-action" href="/tienda"><Icon name="user" /><span>Mi Cuenta</span></a>
             <a className="header-action" href="/tienda"><Icon name="cart" /><span>Carro</span></a>
           </nav>
         </div>

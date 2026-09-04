@@ -26,7 +26,7 @@ export function MobileMenu() {
       {open && (
         <nav className="mobile-menu-panel" aria-label="Menú móvil">
           {links.map(([label, href]) => <a href={href} key={label} onClick={() => setOpen(false)}>{label}</a>)}
-          <a href="#whatsapp" onClick={() => setOpen(false)}>Contacto</a>
+          <a href="mailto:contacto@dmaestros.cl" onClick={() => setOpen(false)}>Contacto</a>
         </nav>
       )}
     </div>

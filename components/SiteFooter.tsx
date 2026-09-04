@@ -1,12 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
 
-const whatsappUrl = "https://wa.me/?text=Hola%20DMaestros%2C%20quiero%20hacer%20una%20consulta.";
+const contactUrl = "mailto:contacto@dmaestros.cl";
 
-function ContactIcon({ type }: { type: "pin" | "phone" | "mail" | "clock" }) {
+function ContactIcon({ type }: { type: "pin" | "mail" | "clock" }) {
   const paths = {
     pin: <><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.4"/></>,
-    phone: <path d="M5 3h4l2 5-3 2c1.5 3 3 4.5 6 6l2-3 5 2v4c0 1-1 2-2 2C10 21 3 14 3 5c0-1 1-2 2-2Z"/>,
     mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></>,
     clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></>,
   };
@@ -20,7 +19,6 @@ export function SiteFooter() {
         <section className="footer-contact-column">
           <h2>DMaestros Chile</h2>
           <p><ContactIcon type="pin" /><span>Taller de productos artesanales<br/>fabricados en Chile</span></p>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"><ContactIcon type="phone" /><span>Escríbenos por WhatsApp</span></a>
           <a href="mailto:contacto@dmaestros.cl"><ContactIcon type="mail" /><span>contacto@dmaestros.cl</span></a>
           <p><ContactIcon type="clock" /><span>Atención personalizada<br/><small>Lunes a viernes</small></span></p>
         </section>
@@ -32,7 +30,7 @@ export function SiteFooter() {
           <Link href="/#productos">Cajas para corchos</Link>
           <Link href="/#productos-bar">Juegos de cerveza</Link>
           <Link href="/#productos-bar">Coffee Bar</Link>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Pedidos especiales</a>
+          <a href={`${contactUrl}?subject=Pedido%20especial`}>Pedidos especiales</a>
         </nav>
 
         <nav className="footer-column" aria-label="DMaestros">
@@ -40,22 +38,18 @@ export function SiteFooter() {
           <Link href="/#inicio">Conoce DMaestros</Link>
           <Link href="/#muebles">Nuestro oficio</Link>
           <Link href="/tienda">Productos</Link>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Cotizaciones</a>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Contacto</a>
-          <h2 className="footer-subheading">Mi cuenta</h2>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Mis consultas</a>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Mis pedidos</a>
+          <a href={`${contactUrl}?subject=Cotizaci%C3%B3n`}>Cotizaciones</a>
+          <a href={contactUrl}>Contacto</a>
         </nav>
 
         <nav className="footer-column" aria-label="Información">
           <h2>Información</h2>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Formas de pago</a>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Despachos</a>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Cambios y devoluciones</a>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Garantía</a>
+          <a href={`${contactUrl}?subject=Formas%20de%20pago`}>Formas de pago</a>
+          <a href={`${contactUrl}?subject=Despachos`}>Despachos</a>
+          <a href={`${contactUrl}?subject=Cambios%20y%20devoluciones`}>Cambios y devoluciones</a>
+          <a href={`${contactUrl}?subject=Garant%C3%ADa`}>Garantía</a>
           <Link href="/tienda">Todos los productos</Link>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Personalizaciones</a>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <a href={`${contactUrl}?subject=Personalizaci%C3%B3n`}>Personalizaciones</a>
         </nav>
 
         <section className="footer-social-column">
@@ -65,12 +59,11 @@ export function SiteFooter() {
             <a href="#inicio" aria-label="Facebook"><Image src="/images/brands/facebook.svg" alt="Facebook" width={24} height={24} /></a>
             <a href="#inicio" aria-label="YouTube"><Image src="/images/brands/youtube.svg" alt="YouTube" width={28} height={22} /></a>
           </div>
-          <a className="footer-whatsapp" href={whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><Image src="/images/brands/whatsapp.svg" alt="WhatsApp" width={28} height={28} /></a>
         </section>
       </div>
 
       <div className="footer-bottom">
-        <p><span aria-hidden="true">©</span> Copyright {new Date().getFullYear()} DMaestros. Todos los derechos reservados.</p>
+        <p><span aria-hidden="true">©</span> {new Date().getFullYear()} DMaestros Chile. Todos los derechos reservados.</p>
         <div className="payment-methods" aria-label="Medios de pago">
           <span className="webpay-plus-badge"><Image src="/images/brands/webpay-plus.jpg" alt="Webpay Plus de Transbank" width={96} height={96} /></span>
           <span><Image src="/images/brands/mastercard.svg" alt="Mastercard" width={38} height={24} /></span>
