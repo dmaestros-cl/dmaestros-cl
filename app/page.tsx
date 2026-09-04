@@ -21,6 +21,7 @@ const headerCategories = [
   { label: "MUEBLES", href: "#productos" },
   { label: "CAVAS Y BARES", href: "#productos" },
   { label: "CAJAS PARA CORCHOS", href: "#productos-bar" },
+  { label: "CAJAS MIXTAS", href: "#productos-bar" },
   { label: "JUEGOS DE CERVEZA", href: "#productos-bar" },
   { label: "COFFEE BAR", href: "#productos-bar" },
   { label: "PEDIDOS ESPECIALES", href: "#whatsapp" },

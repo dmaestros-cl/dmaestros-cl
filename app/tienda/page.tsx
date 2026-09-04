@@ -18,7 +18,7 @@ function ShopIcon({ name }: { name: "pin" | "user" | "cart" }) {
 
 const navigation = [
   ["Tienda", "/tienda"], ["Muebles", "/tienda#catalogo"], ["Cavas y bares", "/tienda#catalogo"],
-  ["Cajas para corchos", "/tienda#catalogo"], ["Juegos de cerveza", "/tienda#catalogo"],
+  ["Cajas para corchos", "/tienda#catalogo"], ["Cajas mixtas", "/tienda#catalogo"], ["Juegos de cerveza", "/tienda#catalogo"],
   ["Coffee Bar", "/tienda#catalogo"], ["Pedidos especiales", "/#whatsapp"],
 ];
 

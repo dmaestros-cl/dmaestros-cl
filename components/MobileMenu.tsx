@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const links = [["Muebles", "#productos"], ["Cavas y bares", "#productos"], ["Cajas para corchos", "#productos-bar"], ["Juegos de cerveza", "#productos-bar"], ["Coffee Bar", "#productos-bar"]];
+const links = [["Muebles", "#productos"], ["Cavas y bares", "#productos"], ["Cajas para corchos", "#productos-bar"], ["Cajas mixtas", "#productos-bar"], ["Juegos de cerveza", "#productos-bar"], ["Coffee Bar", "#productos-bar"]];
 
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
