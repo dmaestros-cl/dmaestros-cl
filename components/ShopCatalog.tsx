@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { useCart } from "@/components/CartProvider";
 import { categories, normalizeSearch, products } from "@/lib/catalog";
 
 export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCategory?: string; initialQuery?: string }) {
+  const { addToCart } = useCart();
   const validInitialCategory = initialCategory && categories.some((category) => category === initialCategory) ? initialCategory : undefined;
   const [selected, setSelected] = useState<string[]>(validInitialCategory ? [validInitialCategory] : []);
   const [sort, setSort] = useState("featured");
@@ -80,7 +82,7 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
                 <p>{product.category} · {product.sku}</p>
                 <h2>{product.name}</h2>
                 <div className="shop-card-actions">
-                  <a href={`mailto:contacto@dmaestros.cl?subject=${encodeURIComponent(`Comprar ${product.name} (${product.sku})`)}`}>Comprar</a>
+                  <button type="button" onClick={() => addToCart(product)} aria-label={`Agregar ${product.name} al carrito`}>Comprar</button>
                 </div>
               </article>
             ))}

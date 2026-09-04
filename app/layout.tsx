@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CartProvider } from "@/components/CartProvider";
 import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
 
@@ -11,8 +12,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="es">
       <body>
-        {children}
-        <SiteFooter />
+        <CartProvider>
+          {children}
+          <SiteFooter />
+        </CartProvider>
       </body>
     </html>
   );
