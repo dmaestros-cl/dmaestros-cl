@@ -9,6 +9,18 @@ button, input { font:inherit; }
 .mobile-menu-reference { display:none; }
 .mobile-hero-exact { display:none; }
 .wood-collection { max-width:1240px; margin:0 auto; padding:88px 30px 110px; scroll-margin-top:180px; background:#fff; }
+.category-banners { display:grid; gap:28px; width:100%; max-width:1680px; margin:0 auto; padding:40px 32px 72px; background:#fff; }
+.category-banner { display:grid; grid-template-columns:minmax(0,1.18fr) minmax(420px,.82fr); min-height:520px; border-radius:8px; color:#fff; background:var(--navy); box-shadow:0 18px 46px rgba(16,35,47,.12); overflow:hidden; }
+.category-banner:nth-child(even) { grid-template-columns:minmax(420px,.82fr) minmax(0,1.18fr); background:#173e55; }
+.category-banner:nth-child(even) .category-banner-image { order:2; }
+.category-banner-image { position:relative; min-height:520px; overflow:hidden; background:#d8d0c5; }
+.category-banner-image img { object-fit:cover; transition:transform .65s ease; }
+.category-banner:hover .category-banner-image img { transform:scale(1.025); }
+.category-banner-copy { display:flex; justify-content:center; align-items:flex-start; flex-direction:column; padding:72px clamp(48px,5vw,96px); }
+.category-banner-copy strong { max-width:480px; font-size:clamp(34px,3vw,50px); line-height:1.06; letter-spacing:-1px; }
+.category-banner-copy > span { max-width:460px; margin-top:24px; color:#e5ebee; font-size:19px; line-height:1.65; }
+.category-banner-copy b { margin-top:42px; padding-bottom:8px; border-bottom:1px solid #fff8; font-size:13px; letter-spacing:1px; text-transform:uppercase; }
+.category-banner-copy b i { margin-left:12px; font-style:normal; }
 .secondary-collection { max-width:none; border-top:1px solid #e8e2dc; background:#f7f5f2; }
 .secondary-collection > * { max-width:1180px; margin-left:auto; margin-right:auto; }
 .secondary-collection .product-photo { background:#fff; }
@@ -222,6 +234,14 @@ header { position:sticky; z-index:40; top:0; background:#fff; box-shadow:0 3px 1
   .hero-hit-entertainment { left:52%; bottom:4%; width:20%; height:17%; }.hero-hit-decor { left:76%; bottom:4%; width:20%; height:17%; }
   .hero-mobile,.hero-desktop,.desktop-carousel,.hero-copy,.slider-arrow { display:none; }
   .wood-collection { padding:42px 10px 75px; }
+  .category-banners { gap:18px; padding:18px 12px 44px; }
+  .category-banner,.category-banner:nth-child(even) { grid-template-columns:1fr; min-height:0; border-radius:6px; }
+  .category-banner:nth-child(even) .category-banner-image { order:0; }
+  .category-banner-image { min-height:clamp(240px,62vw,420px); }
+  .category-banner-copy { min-height:270px; padding:38px 28px 44px; }
+  .category-banner-copy strong { font-size:clamp(28px,8vw,40px); }
+  .category-banner-copy > span { margin-top:17px; font-size:16px; line-height:1.55; }
+  .category-banner-copy b { margin-top:28px; }
   .collection-heading { margin-bottom:25px; text-align:left; }.collection-heading h2 { margin-top:7px; font-size:25px; }.collection-heading p { font-size:15px; line-height:1.45; }
   .editorial-grid { gap:10px; margin-bottom:27px; }.editorial-card { min-height:170px; }.editorial-card span { left:12px; bottom:12px; font-size:16px; }
   .featured-collections { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:0 0 30px; padding:0; overflow:visible; }

@@ -4,10 +4,13 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
 const slides = [
-  { image: "/images/hero/mobile-1.webp", title: <>CREAMOS<br/>PIEZAS QUE<br/>FORMAN PARTE<br/>DE TU VIDA</>, description: <>Muebles y juguetes en maderas nobles,<br/>hechos a mano con dedicación y pasión.</>, cta: "CONOCE NUESTRAS PIEZAS", href: "#productos" },
-  { image: "/images/hero/mobile-2.webp", title: <>HISTORIAS DE<br/>MADERA PARA<br/>IMAGINAR SIN<br/>LÍMITES</>, description: <>Casas y figuras para convertir<br/>cada juego en una aventura.</>, cta: "DESCUBRE LOS JUGUETES", href: "#juguetes" },
-  { image: "/images/hero/mobile-3.webp", title: <>JUGAR,<br/>DESCUBRIR Y<br/>CRECER DE FORMA<br/>NATURAL</>, description: <>Diseños resistentes para moverse,<br/>crear y jugar libremente.</>, cta: "VER JUEGOS DE MADERA", href: "#productos-juguetes" },
-  { image: "/images/hero/mobile-4.webp", title: <>PEQUEÑOS<br/>ESPACIOS PARA<br/>GRANDES<br/>AVENTURAS</>, description: <>Cocinas y accesorios creados<br/>para aprender e imaginar.</>, cta: "EXPLORA LA COLECCIÓN", href: "#productos-juguetes" },
+  { image: "/images/hero/cajas-decorativas.webp", alt: "Caja decorativa artesanal de madera", title: <>CAJAS<br/>DECORATIVAS</>, description: <>Diseñadas para momentos<br/>y objetos que valoras.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Cajas%20decorativas#catalogo", position: "38% bottom" },
+  { image: "/images/hero/cajas-entretencion.webp", alt: "Caja de entretención artesanal de madera", title: <>CAJAS DE<br/>ENTRETENCIÓN</>, description: <>Diseñadas para compartir<br/>y guardar momentos.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Cajas%20de%20entretenci%C3%B3n#catalogo", position: "55% bottom" },
+  { image: "/images/hero/juguete-ludico-mobile.webp", alt: "Juguetes lúdicos decorativos de madera", title: <>JUGUETE LÚDICO<br/>DECORATIVO</>, description: <>Diseños originales para el niño o niña<br/>que llevas dentro.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo", position: "center bottom" },
+  { image: "/images/editorial/furniture.webp", alt: "Mueble artesanal de madera", title: <>MUEBLES</>, description: <>Diseños que aportan estilo<br/>y originalidad a tus espacios.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Muebles#catalogo", position: "70% bottom" },
+  { image: "/images/hero/comedor-artesanal.webp", alt: "Comedor fabricado en madera nativa", title: <>COMEDORES</>, description: <>Diseños modernos con personalidad,<br/>fabricados en maderas nativas.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Comedores#catalogo", position: "73% bottom" },
+  { image: "/images/hero/mascotas-artesanal.webp", alt: "Mueble de madera diseñado para mascotas", title: <>MASCOTAS</>, description: <>Estilo y elegancia<br/>también para ellas.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Mascotas#catalogo", position: "70% bottom" },
+  { image: "/images/hero/pedidos-especiales.webp", alt: "Mueble especial fabricado a medida", title: <>PEDIDOS<br/>ESPECIALES</>, description: <>Tu mueble ideal<br/>lo hacemos realidad.</>, cta: "COTIZAR PROYECTO", href: "https://wa.me/?text=Hola%20DMaestros%2C%20quiero%20cotizar%20un%20pedido%20especial.", position: "58% bottom" },
 ];
 
 function HeroMark() {
@@ -29,14 +32,14 @@ export function MobileHeroCarousel() {
 
   useEffect(() => {
     if (paused) return;
-    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 1500);
+    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 5000);
     return () => window.clearInterval(timer);
   }, [paused]);
 
   return (
     <div className="mobile-hero-exact" aria-roledescription="carrusel" aria-label="Piezas destacadas" onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
       <div className="mobile-carousel-stage">
-        {slides.map((item, index) => <Image className={index === active ? "mobile-slide is-active" : "mobile-slide"} src={item.image} alt="Productos artesanales fabricados en madera" fill priority={index === 0} sizes="(max-width: 899px) 100vw, 0px" key={item.image} />)}
+        {slides.map((item, index) => <Image className={index === active ? "mobile-slide is-active" : "mobile-slide"} src={item.image} alt={item.alt} fill priority={index === 0} sizes="(max-width: 899px) 100vw, 0px" style={{ objectPosition: item.position }} key={item.image} />)}
       </div>
       <div className="mobile-carousel-copy" key={slide.image}>
         <HeroMark />

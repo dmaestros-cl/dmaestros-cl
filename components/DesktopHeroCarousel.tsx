@@ -4,10 +4,13 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const slides = [
-  { image: "/images/hero/dmaestros-banner.png", title: <>CREAMOS<br/>PIEZAS QUE<br/>FORMAN PARTE<br/>DE TU VIDA</>, description: <>Muebles y juguetes en maderas nobles,<br/>hechos a mano con dedicación y pasión.</>, cta: "CONOCE NUESTRAS PIEZAS", href: "#productos" },
-  { image: "/images/hero/desktop-2.webp", title: <>HISTORIAS DE<br/>MADERA PARA<br/>IMAGINAR SIN<br/>LÍMITES</>, description: <>Casas y figuras que transforman cada juego<br/>en una aventura diferente.</>, cta: "DESCUBRE LOS JUGUETES", href: "#juguetes" },
-  { image: "/images/hero/desktop-3.webp", title: <>JUGAR,<br/>DESCUBRIR Y<br/>CRECER DE FORMA<br/>NATURAL</>, description: <>Diseños resistentes que invitan al movimiento,<br/>la creatividad y el juego libre.</>, cta: "VER JUEGOS DE MADERA", href: "#productos-juguetes" },
-  { image: "/images/hero/desktop-4.webp", title: <>PEQUEÑOS<br/>ESPACIOS PARA<br/>GRANDES<br/>AVENTURAS</>, description: <>Cocinas y accesorios de madera creados<br/>para aprender, compartir e imaginar.</>, cta: "EXPLORA LA COLECCIÓN", href: "#productos-juguetes" },
+  { image: "/images/hero/cajas-decorativas.webp", alt: "Caja decorativa artesanal de madera", title: <>CAJAS<br/>DECORATIVAS</>, description: <>Diseñadas para momentos y objetos<br/>que valoras.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Cajas%20decorativas#catalogo", position: "42% bottom" },
+  { image: "/images/hero/cajas-entretencion.webp", alt: "Caja de entretención artesanal de madera", title: <>CAJAS DE<br/>ENTRETENCIÓN</>, description: <>Diseñadas para compartir<br/>y guardar momentos.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Cajas%20de%20entretenci%C3%B3n#catalogo", position: "55% bottom" },
+  { image: "/images/hero/juguete-ludico.webp", alt: "Juguetes lúdicos decorativos de madera", title: <>JUGUETE LÚDICO<br/>DECORATIVO</>, description: <>Diseños originales para el niño o niña<br/>que llevas dentro.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo", position: "45% bottom" },
+  { image: "/images/editorial/furniture.webp", alt: "Mueble artesanal de madera", title: <>MUEBLES</>, description: <>Diseños que aportan estilo<br/>y originalidad a tus espacios.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Muebles#catalogo", position: "65% bottom" },
+  { image: "/images/hero/comedor-artesanal.webp", alt: "Comedor fabricado en madera nativa", title: <>COMEDORES</>, description: <>Diseños modernos con estilo y personalidad,<br/>fabricados en maderas nativas.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Comedores#catalogo", position: "70% bottom" },
+  { image: "/images/hero/mascotas-artesanal.webp", alt: "Mueble de madera diseñado para mascotas", title: <>MASCOTAS</>, description: <>Porque nuestras mascotas también necesitan<br/>estilo y elegancia.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Mascotas#catalogo", position: "70% bottom" },
+  { image: "/images/hero/pedidos-especiales.webp", alt: "Mueble especial fabricado a medida", title: <>PEDIDOS<br/>ESPECIALES</>, description: <>Tu mueble ideal<br/>lo hacemos realidad.</>, cta: "COTIZAR PROYECTO", href: "https://wa.me/?text=Hola%20DMaestros%2C%20quiero%20cotizar%20un%20pedido%20especial.", position: "55% bottom" },
 ];
 
 function HeroMark() {
@@ -33,8 +36,8 @@ export function DesktopHeroCarousel() {
 
   return (
     <div className="desktop-carousel" aria-roledescription="carrusel" aria-label="Colecciones destacadas">
-      {slides.map((item, index) => <Image className={index === active ? "desktop-slide is-active" : "desktop-slide"} src={item.image} alt="Productos artesanales fabricados en madera" fill priority={index === 0} sizes="(min-width: 900px) 100vw, 0px" key={item.image} />)}
-      <div className={active === 0 ? "desktop-carousel-copy dmaestros-banner-copy" : "desktop-carousel-copy"} key={slide.image}>
+      {slides.map((item, index) => <Image className={index === active ? "desktop-slide is-active" : "desktop-slide"} src={item.image} alt={item.alt} fill priority={index === 0} sizes="(min-width: 900px) 100vw, 0px" style={{ objectPosition: item.position }} key={item.image} />)}
+      <div className="desktop-carousel-copy" key={slide.image}>
         <HeroMark />
         <h1>{slide.title}</h1>
         <p>{slide.description}</p>
