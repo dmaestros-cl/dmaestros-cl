@@ -7,11 +7,10 @@ export const metadata: Metadata = {
   description: "Catálogo de muebles y productos artesanales de madera DMaestros.",
 };
 
-function ShopIcon({ name }: { name: "pin" | "user" | "compare" | "cart" }) {
+function ShopIcon({ name }: { name: "pin" | "user" | "cart" }) {
   const paths = {
     pin: <><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></>,
     user: <><circle cx="12" cy="7" r="4"/><path d="M4 22c.5-6 3-9 8-9s7.5 3 8 9"/></>,
-    compare: <><path d="M4 8h13l-3-3m3 3-3 3M20 16H7l3 3m-3-3 3-3"/><path d="M3 5v6m18 2v6"/></>,
     cart: <><path d="M2 3h3l2.3 12.5h10.8L21 7H6"/><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/></>,
   };
   return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
@@ -42,7 +41,6 @@ export default function StorePage() {
           <nav className="shop-header-actions" aria-label="Accesos rápidos">
             <a href="#catalogo"><ShopIcon name="pin" /><span>Tienda</span></a>
             <a href="/#whatsapp"><ShopIcon name="user" /><span>Mi cuenta</span></a>
-            <a href="#catalogo"><ShopIcon name="compare" /><span>Comparación</span></a>
             <a href="#catalogo"><ShopIcon name="cart" /><span>Carro</span></a>
           </nav>
         </div>

@@ -4,12 +4,11 @@ import { DesktopHeroCarousel } from "@/components/DesktopHeroCarousel";
 import { MobileMenu } from "@/components/MobileMenu";
 import { ProductSearch } from "@/components/ProductSearch";
 
-function Icon({ name }: { name: "search" | "location" | "user" | "compare" | "cart" | "menu" | "arrow" }) {
+function Icon({ name }: { name: "search" | "location" | "user" | "cart" | "menu" | "arrow" }) {
   const paths = {
     search: <><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></>,
     location: <><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></>,
     user: <><circle cx="12" cy="7" r="4"/><path d="M4 22c.5-6 3-9 8-9s7.5 3 8 9"/></>,
-    compare: <><path d="M4 8h13l-3-3m3 3-3 3M20 16H7l3 3m-3-3 3-3"/><path d="M3 5v6m18 2v6"/></>,
     cart: <><path d="M2 3h3l2.3 12.5h10.8L21 7H6"/><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/></>,
     menu: <path d="M3 6h18M3 12h18M3 18h18"/>,
     arrow: <path d="M5 12h14M14 7l5 5-5 5"/>,
@@ -98,7 +97,6 @@ export default function Home() {
           <nav className="header-actions" aria-label="Accesos rápidos">
             <a className="header-action location-action" href="#productos"><Icon name="location" /><span>Tiendas</span></a>
             <a className="header-action" href="#whatsapp"><Icon name="user" /><span>Mi Cuenta</span></a>
-            <a className="header-action" href="#productos"><Icon name="compare" /><span>Mi Comparación</span></a>
             <a className="header-action" href="#productos"><Icon name="cart" /><span>Carro</span></a>
           </nav>
         </div>

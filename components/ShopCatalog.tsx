@@ -30,7 +30,6 @@ const categories = ["Muebles", "Cavas y bares", "Cajas para corchos", "Cajas mix
 export function ShopCatalog() {
   const [selected, setSelected] = useState<string[]>([]);
   const [sort, setSort] = useState("featured");
-  const [compare, setCompare] = useState<string[]>([]);
   const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
@@ -45,10 +44,6 @@ export function ShopCatalog() {
 
   function toggleCategory(category: string) {
     setSelected((current) => current.includes(category) ? current.filter((item) => item !== category) : [...current, category]);
-  }
-
-  function toggleCompare(sku: string) {
-    setCompare((current) => current.includes(sku) ? current.filter((item) => item !== sku) : current.length < 3 ? [...current, sku] : current);
   }
 
   return (
@@ -89,7 +84,6 @@ export function ShopCatalog() {
               <option value="az">Nombre: A–Z</option>
               <option value="za">Nombre: Z–A</option>
             </select>
-            <button className="compare-button" type="button">COMPARAR ({compare.length})</button>
           </div>
 
           <p className="results-count">{visible.length} productos</p>
@@ -104,7 +98,6 @@ export function ShopCatalog() {
                 <h2>{product.name}</h2>
                 <div className="shop-card-actions">
                   <a href={`https://wa.me/?text=${encodeURIComponent(`Hola DMaestros, quiero consultar por ${product.name} (${product.sku}).`)}`} target="_blank" rel="noopener noreferrer">Consultar</a>
-                  <label><input type="checkbox" checked={compare.includes(product.sku)} onChange={() => toggleCompare(product.sku)} /><span>Comparar</span></label>
                 </div>
               </article>
             ))}
