@@ -4,13 +4,13 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
 const slides = [
-  { image: "/images/hero/mobile-cajas-decorativas-v4.webp", alt: "Pareja disfrutando una caja decorativa artesanal de madera", title: <>CAJAS<br/>DECORATIVAS</>, description: <>Diseñadas para momentos<br/>y objetos que valoras.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Cajas%20decorativas#catalogo", position: "center" },
-  { image: "/images/hero/mobile-cajas-entretencion-v4.webp", alt: "Amigos disfrutando una caja de juegos de madera", title: <>CAJAS DE<br/>ENTRETENCIÓN</>, description: <>Diseñadas para compartir<br/>y guardar momentos.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Cajas%20de%20entretenci%C3%B3n#catalogo", position: "center" },
-  { image: "/images/hero/mobile-juguete-ludico-v4.webp", alt: "Familia jugando con un caballo de madera artesanal", title: <>JUGUETE LÚDICO<br/>DECORATIVO</>, description: <>Diseños originales para el niño o niña<br/>que llevas dentro.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo", position: "center" },
-  { image: "/images/hero/mobile-muebles-v4.webp", alt: "Pareja disfrutando un mueble artesanal de madera", title: <>MUEBLES</>, description: <>Diseños que aportan estilo<br/>y originalidad a tus espacios.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Muebles#catalogo", position: "center" },
-  { image: "/images/hero/mobile-comedores-v4.webp", alt: "Familia reunida alrededor de un comedor de madera nativa", title: <>COMEDORES</>, description: <>Diseños modernos con personalidad,<br/>fabricados en maderas nativas.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Comedores#catalogo", position: "center" },
-  { image: "/images/hero/mobile-mascotas-v4.webp", alt: "Mujer feliz junto a su mascota en una cama de madera", title: <>MASCOTAS</>, description: <>Estilo y elegancia<br/>también para ellas.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Mascotas#catalogo", position: "center" },
-  { image: "/images/hero/mobile-pedidos-especiales-v4.webp", alt: "Cliente feliz junto a un artesano y su mueble a medida", title: <>PEDIDOS<br/>ESPECIALES</>, description: <>Tu mueble ideal<br/>lo hacemos realidad.</>, cta: "COTIZAR PROYECTO", href: "mailto:contacto@dmaestros.cl?subject=Pedido%20especial", position: "center" },
+  { image: "/images/hero/poster-cajas-decorativas-v1.webp", alt: "Pareja descubriendo una caja decorativa artesanal de madera", title: <>CAJAS<br/>DECORATIVAS</>, description: <>Diseñadas para momentos<br/>y objetos que valoras.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Cajas%20decorativas#catalogo", position: "center" },
+  { image: "/images/hero/poster-cajas-entretencion-v1.webp", alt: "Amigos disfrutando una caja de entretención de madera", title: <>CAJAS DE<br/>ENTRETENCIÓN</>, description: <>Diseñadas para compartir<br/>y guardar momentos.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Cajas%20de%20entretenci%C3%B3n#catalogo", position: "center", tone: "light" },
+  { image: "/images/hero/poster-juguete-ludico-v1.webp", alt: "Madre e hijo jugando con un caballo de madera artesanal", title: <>JUGUETE LÚDICO<br/>DECORATIVO</>, description: <>Diseños originales para el niño o niña<br/>que llevas dentro.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Juguete%20l%C3%BAdico%20decorativo#catalogo", position: "center" },
+  { image: "/images/hero/poster-muebles-v1.webp", alt: "Pareja contemplando un aparador artesanal de madera", title: <>MUEBLES</>, description: <>Diseños que aportan estilo<br/>y originalidad a tus espacios.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Muebles#catalogo", position: "center" },
+  { image: "/images/hero/poster-comedores-v1.webp", alt: "Familia reunida alrededor de un comedor de madera nativa", title: <>COMEDORES</>, description: <>Diseños modernos con personalidad,<br/>fabricados en maderas nativas.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Comedores#catalogo", position: "center" },
+  { image: "/images/hero/poster-mascotas-v1.webp", alt: "Mujer junto a sus mascotas en una cama artesanal de madera", title: <>MASCOTAS</>, description: <>Estilo y elegancia<br/>también para ellas.</>, cta: "VER CATEGORÍA", href: "/tienda?categoria=Mascotas#catalogo", position: "center" },
+  { image: "/images/hero/poster-pedidos-especiales-v1.webp", alt: "Cliente y artesano junto a un mueble único hecho a medida", title: <>PEDIDOS<br/>ESPECIALES</>, description: <>Tu mueble ideal<br/>lo hacemos realidad.</>, cta: "COTIZAR PROYECTO", href: "mailto:contacto@dmaestros.cl?subject=Pedido%20especial", position: "center" },
 ];
 
 function HeroMark() {
@@ -36,9 +36,9 @@ export function MobileHeroCarousel() {
   return (
     <div className="mobile-hero-exact" aria-roledescription="carrusel" aria-label="Piezas destacadas" onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
       <div className="mobile-carousel-stage">
-        {slides.map((item, index) => <Image className={index === active ? "mobile-slide is-active" : "mobile-slide"} src={item.image} alt={item.alt} fill priority={index === 0} sizes="(max-width: 899px) 100vw, 0px" style={{ objectPosition: item.position }} key={item.image} />)}
+        {slides.map((item, index) => <Image className={index === active ? "mobile-slide is-active" : "mobile-slide"} src={item.image} alt={item.alt} fill preload={index === 0} sizes="(max-width: 899px) 100vw, 0px" style={{ objectPosition: item.position }} key={item.image} />)}
       </div>
-      <div className="mobile-carousel-copy" key={slide.image}>
+      <div className={`mobile-carousel-copy${slide.tone === "light" ? " is-light" : ""}`} key={slide.image}>
         <HeroMark />
         <h1>{slide.title}</h1>
         <p>{slide.description}</p>
