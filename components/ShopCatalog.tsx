@@ -48,13 +48,6 @@ export function ShopCatalog() {
 
   return (
     <main className="shop-page">
-      <div className="shop-breadcrumb"><a href="/">Inicio</a><span>→</span><strong>Tienda</strong></div>
-      <div className="shop-heading">
-        <span className="collection-kicker">CATÁLOGO DMAESTROS</span>
-        <h1>Productos hechos en madera</h1>
-        <p>Muebles, objetos para el hogar y piezas originales fabricadas artesanalmente en Chile. Selecciona una categoría o explora el catálogo completo.</p>
-      </div>
-
       <div className="shop-layout">
         <aside className="shop-filters">
           <h2>Filtrar por</h2>
