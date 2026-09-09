@@ -40,17 +40,16 @@ export function HomeCategoryShowcase() {
           </header>
 
           <div className="home-category-pair">
-            {category.images.map((image, imageIndex) => (
+            {category.images.slice(0, 1).map((image) => (
               <a className="home-category-tile" href={category.href} key={image}>
-                <Image className="home-category-image" src={image} alt={`${category.title}, vista ${imageIndex + 1}`} fill sizes="(max-width: 899px) 50vw, 50vw" />
-                <span>{imageIndex === 0 ? category.title : "Descubrir colección"}</span>
+                <Image className="home-category-image" src={image} alt={category.title} fill sizes="(max-width: 899px) 100vw, 100vw" />
+                <span>{category.title}</span>
               </a>
             ))}
           </div>
 
           <div className="category-products-label">
             <h3>Productos de la categoría</h3>
-            <a href={category.href}>Ver categoría <span aria-hidden="true">→</span></a>
           </div>
 
           <div className="home-product-carousel" aria-label={`Productos de ${category.title}`}>
