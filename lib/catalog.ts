@@ -4,6 +4,14 @@ export type CatalogProduct = {
   image: string;
   category: string;
   price?: number;
+  description?: string;
+  saleMode?: "buy" | "quote";
+  salePrice?: number;
+  slug?: string;
+  stock?: number;
+  available?: boolean;
+  images?: string[];
+  youtubeUrl?: string;
 };
 
 export const products: readonly CatalogProduct[] = [

@@ -50,8 +50,8 @@ export function SiteHeader() {
       <div className="mobile-header-reference">
         <Link className="mobile-real-logo" href="/" aria-label="DMaestros, inicio"><BrandLogo filterId="shared-white-logo-mobile" /></Link>
         <ProductSearch mobile />
-        <Link className="mobile-header-action" href="/tienda" aria-label="Mi cuenta"><HeaderIcon name="user" /></Link>
-        <Link className="mobile-header-action cart-header-action" href="/tienda" aria-label={`Carro, ${itemCount} producto${itemCount === 1 ? "" : "s"}`}><HeaderIcon name="cart" />{itemCount > 0 && <span className="cart-count">{itemCount}</span>}</Link>
+        <Link className="mobile-header-action" href="/cuenta" aria-label="Mi cuenta"><HeaderIcon name="user" /></Link>
+        <Link className="mobile-header-action cart-header-action" href="/carrito" aria-label={`Carro, ${itemCount} producto${itemCount === 1 ? "" : "s"}`}><HeaderIcon name="cart" />{itemCount > 0 && <span className="cart-count">{itemCount}</span>}</Link>
       </div>
       <div className="topbar">
         <Link className="brand" href="/" aria-label="DMaestros, inicio"><BrandLogo filterId="shared-white-logo" /></Link>
@@ -60,8 +60,8 @@ export function SiteHeader() {
         <ProductSearch />
         <nav className="header-actions" aria-label="Accesos rápidos">
           <Link className="header-action location-action" href="/tienda"><HeaderIcon name="location" /><span>Tienda</span></Link>
-          <Link className="header-action" href="/tienda"><HeaderIcon name="user" /><span>Mi Cuenta</span></Link>
-          <Link className="header-action cart-header-action" href="/tienda" aria-label={`Carro, ${itemCount} producto${itemCount === 1 ? "" : "s"}`}><HeaderIcon name="cart" /><span>Carro</span>{itemCount > 0 && <b className="cart-count">{itemCount}</b>}</Link>
+          <Link className="header-action" href="/cuenta"><HeaderIcon name="user" /><span>Mi Cuenta</span></Link>
+          <Link className="header-action cart-header-action" href="/carrito" aria-label={`Carro, ${itemCount} producto${itemCount === 1 ? "" : "s"}`}><HeaderIcon name="cart" /><span>Carro</span>{itemCount > 0 && <b className="cart-count">{itemCount}</b>}</Link>
         </nav>
       </div>
       <div className="mobile-menu-reference"><MobileMenu /></div>

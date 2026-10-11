@@ -38,7 +38,7 @@ export function DesktopHeroCarousel() {
         <HeroMark />
         <h1>{slide.title}</h1>
         <p>{slide.description}</p>
-        <a className="cta" href={slide.href}>{slide.cta} <span aria-hidden="true">→</span></a>
+        <a className="cta" href={slide.href}>{slide.cta}</a>
       </div>
       <button className="slider-arrow previous" aria-label="Imagen anterior" onClick={() => go(-1)}>‹</button>
       <button className="slider-arrow next" aria-label="Imagen siguiente" onClick={() => go(1)}>›</button>

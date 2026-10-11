@@ -12,6 +12,9 @@ type CartContextValue = {
   items: CartLine[];
   itemCount: number;
   addToCart: (product: CatalogProduct) => void;
+  setQuantity: (sku: string, quantity: number) => void;
+  removeFromCart: (sku: string) => void;
+  clearCart: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -19,6 +22,15 @@ const CartContext = createContext<CartContextValue | null>(null);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
+  useEffect(() => {
+    const saved = window.localStorage.getItem("dmaestros-cart");
+    if (!saved) return;
+    let parsed: CartLine[];
+    try { parsed = JSON.parse(saved); } catch { window.localStorage.removeItem("dmaestros-cart"); return; }
+    const timer = window.setTimeout(() => setItems(parsed), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  useEffect(() => { window.localStorage.setItem("dmaestros-cart", JSON.stringify(items)); }, [items]);
 
   useEffect(() => {
     if (!notification) return;
@@ -34,13 +46,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const existing = current.find((item) => item.product.sku === product.sku);
         if (existing) {
           return current.map((item) => item.product.sku === product.sku
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: product.stock && product.stock > 0 ? Math.min(item.quantity + 1, product.stock) : item.quantity + 1 }
             : item);
         }
         return [...current, { product, quantity: 1 }];
       });
       setNotification(`${product.name} se agregó al carrito`);
     },
+    setQuantity(sku, quantity) {
+      setItems((current) => quantity <= 0 ? current.filter((item) => item.product.sku !== sku) : current.map((item) => item.product.sku === sku ? { ...item, quantity: item.product.stock && item.product.stock > 0 ? Math.min(quantity, item.product.stock) : quantity } : item));
+    },
+    removeFromCart(sku) { setItems((current) => current.filter((item) => item.product.sku !== sku)); },
+    clearCart() { setItems([]); },
   }), [items]);
 
   return (

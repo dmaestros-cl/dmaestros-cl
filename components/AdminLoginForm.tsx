@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ADMIN_EMAIL } from "@/lib/admin-constants";
 
 export function AdminLoginForm() {
-  const [email, setEmail] = useState(ADMIN_EMAIL);
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,21 +18,27 @@ export function AdminLoginForm() {
       setMessage("Este correo no tiene permisos de administrador.");
       return;
     }
-
     setLoading(true);
+    setMessage("");
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: ADMIN_EMAIL,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/admin` },
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
     });
     setLoading(false);
-    setMessage(error ? error.message : "Revisa tu correo: enviamos un enlace seguro para entrar.");
+    if (error) {
+      setMessage("Clave incorrecta. Intenta nuevamente.");
+      return;
+    }
+    router.replace("/admin");
+    router.refresh();
   }
 
   return (
     <form className="admin-login-form" onSubmit={submit}>
-      <label>Correo administrador<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label>
-      <button type="submit" disabled={loading}>{loading ? "Enviando…" : "Enviar enlace de acceso"}</button>
+      <label>Correo<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" autoFocus required /></label>
+      <label>Clave<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
+      <button type="submit" disabled={loading}>{loading ? "Ingresando…" : "Ingresar"}</button>
       {message && <p role="status">{message}</p>}
     </form>
   );

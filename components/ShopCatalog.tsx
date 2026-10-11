@@ -1,21 +1,22 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState } from "react";
-import { useCart } from "@/components/CartProvider";
-import { categories, normalizeSearch, products } from "@/lib/catalog";
+import { ProductActions } from "@/components/ProductActions";
+import { ProductCardMedia } from "@/components/ProductCardMedia";
+import { normalizeSearch, type CatalogProduct } from "@/lib/catalog";
 
-export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCategory?: string; initialQuery?: string }) {
-  const { addToCart } = useCart();
+export function ShopCatalog({ initialCategory, initialQuery = "", products, categories, whatsappNumber }: { initialCategory?: string; initialQuery?: string; products: CatalogProduct[]; categories: string[]; whatsappNumber: string }) {
   const validInitialCategory = initialCategory && categories.some((category) => category === initialCategory) ? initialCategory : undefined;
   const [selected, setSelected] = useState<string[]>(validInitialCategory ? [validInitialCategory] : []);
   const [sort, setSort] = useState("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [offerOnly, setOfferOnly] = useState(false);
   const query = initialQuery;
 
   const visible = useMemo(() => {
     const filtered = products.filter((product) =>
       (!selected.length || selected.includes(product.category)) &&
+      (!offerOnly || (product.price != null && product.salePrice != null && product.salePrice < product.price)) &&
       normalizeSearch(`${product.name} ${product.category} ${product.sku}`).includes(normalizeSearch(query)),
     );
     if (sort === "az") return [...filtered].sort((a, b) => a.name.localeCompare(b.name, "es"));
@@ -23,7 +24,9 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
     if (sort === "price-asc") return [...filtered].sort((a, b) => a.price == null && b.price == null ? 0 : a.price == null ? 1 : b.price == null ? -1 : a.price - b.price);
     if (sort === "price-desc") return [...filtered].sort((a, b) => a.price == null && b.price == null ? 0 : a.price == null ? 1 : b.price == null ? -1 : b.price - a.price);
     return filtered;
-  }, [selected, sort, query]);
+  }, [selected, offerOnly, sort, query, products]);
+
+  const activeFilterCount = selected.length + (offerOnly ? 1 : 0);
 
   function toggleCategory(category: string) {
     setSelected((current) => current.includes(category) ? current.filter((item) => item !== category) : [...current, category]);
@@ -36,7 +39,7 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
           <div className="shop-filter-heading">
             <h2>Filtros</h2>
             <button type="button" aria-expanded={filtersOpen} aria-controls="shop-filter-options" onClick={() => setFiltersOpen((open) => !open)}>
-              <span className={selected.length ? "filter-status is-active" : "filter-status"}>{selected.length ? `${selected.length} activo${selected.length === 1 ? "" : "s"}` : "Ver opciones"}</span>
+              <span className={activeFilterCount ? "filter-status is-active" : "filter-status"}>{activeFilterCount ? `${activeFilterCount} activo${activeFilterCount === 1 ? "" : "s"}` : "Ver opciones"}</span>
               <span className="filter-chevron" aria-hidden="true" />
             </button>
           </div>
@@ -56,7 +59,11 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
               <label><input type="checkbox" /><span>Tono nogal</span></label>
               <label><input type="checkbox" /><span>Combinado</span></label>
             </div>
-            {selected.length > 0 && <button className="clear-filters" type="button" onClick={() => setSelected([])}>Limpiar filtros</button>}
+            <div className="filter-group filter-promotions">
+              <h3>Promociones</h3>
+              <label><input type="checkbox" checked={offerOnly} onChange={(event) => setOfferOnly(event.target.checked)} /><span>Productos en oferta</span></label>
+            </div>
+            {activeFilterCount > 0 && <button className="clear-filters" type="button" onClick={() => { setSelected([]); setOfferOnly(false); }}>Limpiar filtros</button>}
           </div>
         </aside>
 
@@ -73,17 +80,12 @@ export function ShopCatalog({ initialCategory, initialQuery = "" }: { initialCat
 
           <p className="results-count">{visible.length} productos</p>
           <div className="shop-product-grid">
-            {visible.map((product, index) => (
+            {visible.map((product) => (
               <article className="shop-product-card" key={product.sku}>
-                <div className="shop-product-image">
-                  {index < 3 && <span className="new-badge">NUEVO</span>}
-                  <Image src={product.image} alt={product.name} fill sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 260px" />
-                </div>
+                <ProductCardMedia className="shop-product-image" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} available={product.available} price={product.price} salePrice={product.salePrice} sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 260px" />
                 <p>{product.category} · {product.sku}</p>
                 <h2>{product.name}</h2>
-                <div className="shop-card-actions">
-                  <button type="button" onClick={() => addToCart(product)} aria-label={`Agregar ${product.name} al carrito`}>Comprar</button>
-                </div>
+                <ProductActions product={product} whatsappNumber={whatsappNumber} compact />
               </article>
             ))}
           </div>

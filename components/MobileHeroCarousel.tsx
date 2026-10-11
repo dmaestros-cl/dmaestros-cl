@@ -42,7 +42,7 @@ export function MobileHeroCarousel() {
         <HeroMark />
         <h1>{slide.title}</h1>
         <p>{slide.description}</p>
-        <a className="mobile-real-cta" href={slide.href}>{slide.cta} <span aria-hidden="true">→</span></a>
+        <a className="mobile-real-cta" href={slide.href}>{slide.cta}</a>
       </div>
       <button className="mobile-real-arrow mobile-real-prev" aria-label="Imagen anterior" onClick={() => goTo(active - 1)}>‹</button>
       <button className="mobile-real-arrow mobile-real-next" aria-label="Imagen siguiente" onClick={() => goTo(active + 1)}>›</button>
