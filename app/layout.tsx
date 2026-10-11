@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CartProvider } from "@/components/CartProvider";
 import { SiteFooter } from "@/components/SiteFooter";
+import { NavigationScrollReset } from "@/components/NavigationScrollReset";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,11 +11,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es">
+    <html lang="es" data-scroll-behavior="smooth">
       <body>
         <CartProvider>
           {children}
           <SiteFooter />
+          <NavigationScrollReset />
         </CartProvider>
       </body>
     </html>
