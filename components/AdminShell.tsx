@@ -29,7 +29,7 @@ function AdminBrandLogo() {
   return <svg className="admin-brand-logo" viewBox="0 0 1348 328" role="img" aria-label="DMaestros"><filter id="admin-logo-white" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -1 -1 -1 0 2.94" /></filter><image href="/images/logo-dmaestros.png" width="1348" height="328" filter="url(#admin-logo-white)" /></svg>;
 }
 
-export function AdminShell({ email, children }: { email: string; children: React.ReactNode }) {
+export function AdminShell({ children }: { email: string; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -52,10 +52,6 @@ export function AdminShell({ email, children }: { email: string; children: React
           <div className="admin-topbar-title"><span>Panel administrador</span><strong>DMaestros</strong></div>
           <div className="admin-topbar-actions">
             <Link href="/" target="_blank">Ver tienda ↗</Link>
-            <div className="admin-account">
-              <span className="admin-account-avatar" aria-hidden="true">A</span>
-              <span className="admin-account-copy"><strong>Administrador</strong><small>{email}</small></span>
-            </div>
             <button className="admin-topbar-link-button" onClick={signOut}>Cerrar sesión</button>
           </div>
         </header>
