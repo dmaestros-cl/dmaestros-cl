@@ -1,4 +1,8 @@
 :root { --navy:#073553; --ink:#111416; --soft:#f2f1ee; }
+.product-commerce-actions > :is(.product-details-link,.product-primary-action,.product-cart-icon) { transition:transform .2s ease,box-shadow .2s ease; }
+@media (hover:hover) and (pointer:fine) { .product-commerce-actions > :is(.product-details-link,.product-primary-action,.product-cart-icon):not(:disabled):hover { transform:translateY(-3px); box-shadow:0 7px 16px #07355324; } }
+.product-commerce-actions > :is(.product-details-link,.product-primary-action,.product-cart-icon):focus-visible { outline:2px solid var(--navy); outline-offset:3px; }
+@media (prefers-reduced-motion:reduce) { .product-commerce-actions > :is(.product-details-link,.product-primary-action,.product-cart-icon) { transition:none; }.product-commerce-actions > :is(.product-details-link,.product-primary-action,.product-cart-icon):hover { transform:none; } }
 @media (max-width:700px) { .admin-topbar-actions > .admin-topbar-link-button { padding:8px 9px; } }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
