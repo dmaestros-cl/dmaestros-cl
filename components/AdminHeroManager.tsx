@@ -88,8 +88,8 @@ export function AdminHeroManager({ slides }: { slides: Slide[] }) {
         alt,
         title: String(form.get("title")),
         description: String(form.get("description")),
-        cta: String(form.get("cta") || "Conoce nuestras piezas"),
-        href: String(form.get("href") || "/tienda"),
+        cta: "Conoce nuestras piezas",
+        href: "/tienda",
         sort_order: slides.length * 10,
       });
       if (error) throw error;
@@ -163,7 +163,6 @@ export function AdminHeroManager({ slides }: { slides: Slide[] }) {
           <input name="mobile" type="file" accept="image/png,image/jpeg,image/webp" required />
         </label>
       </div>
-      <div className="admin-form-row"><label>Texto del botón<input name="cta" defaultValue="Conoce nuestras piezas" /></label><label>Enlace del botón<input name="href" defaultValue="/tienda" /></label></div>
       <button className="admin-primary-button" type="submit" disabled={busy}>{busy ? "Guardando…" : "Agregar al hero"}</button>
       {message && <p className="admin-form-message" role="status">{message}</p>}
     </form>
