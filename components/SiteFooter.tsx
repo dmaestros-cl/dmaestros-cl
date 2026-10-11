@@ -21,8 +21,14 @@ export async function SiteFooter() {
     supabase.from("store_settings").select("whatsapp_number,instagram_url,instagram_active,facebook_url,facebook_active,youtube_url,youtube_active,tiktok_url,tiktok_active").eq("id", true).maybeSingle(),
     supabase.from("footer_settings").select("business_name,location_text,contact_email,service_text,service_hours,weekday_open,weekday_close,saturday_active,saturday_open,saturday_close,sunday_active,sunday_open,sunday_close").eq("id", true).maybeSingle(),
     supabase.from("footer_sections").select("section_key,title,sort_order").eq("active", true).order("sort_order"),
-    supabase.from("footer_links").select("id,section_key,label,href,sort_order").eq("active", true).order("sort_order"),
+    supabase.from("footer_links").select("id,section_key,label,href,sort_order,categories(name,active)").eq("active", true).order("sort_order"),
   ]);
+  const visibleLinks = (footerLinks ?? []).flatMap((link) => {
+    if (link.section_key !== "collections") return [link];
+    const relation = link.categories as { name: string; active: boolean } | { name: string; active: boolean }[] | null;
+    const category = Array.isArray(relation) ? relation[0] : relation;
+    return category?.active ? [{ ...link, label: category.name, href: `/tienda?categoria=${encodeURIComponent(category.name)}` }] : [];
+  });
   const socials = [
     { label: "Instagram", url: settings?.instagram_url, active: settings?.instagram_active, icon: "/images/brands/instagram.svg", width: 24, height: 24 },
     { label: "Facebook", url: settings?.facebook_url, active: settings?.facebook_active, icon: "/images/brands/facebook.svg", width: 24, height: 24 },
@@ -41,7 +47,7 @@ export async function SiteFooter() {
           <a href={`mailto:${footerSettings?.contact_email ?? "contacto@dmaestros.cl"}`}><ContactIcon type="mail" /><span>{footerSettings?.contact_email ?? "contacto@dmaestros.cl"}</span></a>
           <p><ContactIcon type="clock" /><span>{footerSettings?.service_text ?? "Atención personalizada"}<small className="footer-schedule"><span>Lunes a viernes: {footerSettings?.weekday_open ?? "09:00"}–{footerSettings?.weekday_close ?? "18:00"}</span>{footerSettings?.saturday_active && <span>Sábado: {footerSettings.saturday_open}–{footerSettings.saturday_close}</span>}{footerSettings?.sunday_active && <span>Domingo: {footerSettings.sunday_open}–{footerSettings.sunday_close}</span>}</small></span></p>
         </section>
-        {(footerSections ?? []).map((section) => <nav className="footer-column" aria-label={section.title} key={section.section_key}><h2>{section.title}</h2>{(footerLinks ?? []).filter((link) => link.section_key === section.section_key).map((link) => link.href.startsWith("/") ? <Link href={link.href} key={link.id}>{link.label}</Link> : <a href={link.href} key={link.id} target={link.href.startsWith("http") ? "_blank" : undefined} rel={link.href.startsWith("http") ? "noreferrer" : undefined}>{link.label}</a>)}</nav>)}
+        {(footerSections ?? []).map((section) => <nav className="footer-column" aria-label={section.title} key={section.section_key}><h2>{section.title}</h2>{visibleLinks.filter((link) => link.section_key === section.section_key).map((link) => link.href.startsWith("/") ? <Link href={link.href} key={link.id}>{link.label}</Link> : <a href={link.href} key={link.id} target={link.href.startsWith("http") ? "_blank" : undefined} rel={link.href.startsWith("http") ? "noreferrer" : undefined}>{link.label}</a>)}</nav>)}
 
         {socials.length > 0 && <section className="footer-social-column">
           <h2>Síguenos</h2>

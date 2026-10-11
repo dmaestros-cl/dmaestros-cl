@@ -6,7 +6,7 @@ import { AdminDeleteDialog } from "@/components/AdminDeleteDialog";
 import { AdminSuccessDialog } from "@/components/AdminSuccessDialog";
 
 export type FooterSettings = { business_name: string; location_text: string; contact_email: string; service_text: string; service_hours: string; weekday_open: string; weekday_close: string; saturday_active: boolean; saturday_open: string; saturday_close: string; sunday_active: boolean; sunday_open: string; sunday_close: string };
-export type FooterLink = { id: string; section_key: string; label: string; href: string; slug: string | null; page_content: string | null; sort_order: number; active: boolean };
+export type FooterLink = { id: string; section_key: string; label: string; href: string; slug: string | null; category_id?: string | null; page_content: string | null; sort_order: number; active: boolean };
 export type FooterSection = { section_key: string; title: string; sort_order: number; active: boolean; links: FooterLink[] };
 type CategoryOption = { id: string; name: string; slug: string; active: boolean };
 
@@ -16,6 +16,7 @@ const slugify = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036
 export function AdminFooterSettings({ initialSettings, initialSections, categories }: { initialSettings: FooterSettings; initialSections: FooterSection[]; categories: CategoryOption[] }) {
   const [settings, setSettings] = useState(initialSettings);
   const [sections, setSections] = useState(initialSections);
+  const [selectedCategories, setSelectedCategories] = useState(() => categories.filter((category) => initialSections.find((section) => section.section_key === "collections")?.links.some((link) => link.active && link.category_id === category.id)).map((category) => category.id));
   const [editing, setEditing] = useState<FooterLink | null>(null);
   const [deleting, setDeleting] = useState<FooterLink | null>(null);
   const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
@@ -33,10 +34,13 @@ export function AdminFooterSettings({ initialSettings, initialSections, categori
 
   async function saveSection(section: FooterSection) {
     setBusy(true); setMessage("");
-    const { error } = await supabase.from("footer_sections").update({ title: section.title, active: section.active, sort_order: section.sort_order }).eq("section_key", section.section_key);
+    const { data, error } = section.section_key === "collections"
+      ? await supabase.rpc("admin_save_footer_collections", { category_ids: selectedCategories, section_title: section.title, section_order: section.sort_order, section_active: section.active })
+      : await supabase.from("footer_sections").update({ title: section.title, active: section.active, sort_order: section.sort_order }).eq("section_key", section.section_key).select("section_key").single();
     setBusy(false);
     if (error) setMessage(error.message);
     else {
+      if (section.section_key === "collections") setSections((current) => current.map((item) => item.section_key === "collections" ? { ...item, links: (data ?? []) as FooterLink[] } : item));
       setSections((current) => [...current].sort((a, b) => a.sort_order - b.sort_order));
       setSuccess({ title: "Sección actualizada", message: `La columna “${section.title}” fue guardada correctamente.` });
     }
@@ -58,23 +62,9 @@ export function AdminFooterSettings({ initialSettings, initialSections, categori
     }
   }
 
-  async function toggleCollection(category: CategoryOption) {
-    const section = sections.find((item) => item.section_key === "collections");
-    if (!section) return;
-    const existing = section.links.find((link) => link.slug === category.slug || link.label === category.name);
-    if (!existing && section.links.length >= 6) return setMessage("Puedes mostrar como máximo 6 colecciones.");
-    setBusy(true); setMessage("");
-    if (existing) {
-      const { error } = await supabase.from("footer_links").delete().eq("id", existing.id);
-      if (!error) setSections((current) => current.map((item) => item.section_key === "collections" ? { ...item, links: item.links.filter((link) => link.id !== existing.id) } : item));
-      if (error) setMessage(error.message);
-    } else {
-      const payload = { section_key: "collections", label: category.name, href: `/tienda?categoria=${encodeURIComponent(category.name)}`, slug: category.slug, page_content: null, sort_order: (section.links.at(-1)?.sort_order ?? 0) + 10, active: true };
-      const { data, error } = await supabase.from("footer_links").insert(payload).select().single();
-      if (!error && data) setSections((current) => current.map((item) => item.section_key === "collections" ? { ...item, links: [...item.links, data] } : item));
-      if (error) setMessage(error.message);
-    }
-    setBusy(false);
+  function toggleCollection(category: CategoryOption) {
+    setMessage("");
+    setSelectedCategories((current) => current.includes(category.id) ? current.filter((id) => id !== category.id) : current.length < 6 ? [...current, category.id] : current);
   }
 
   async function removeLink() {
@@ -106,7 +96,7 @@ export function AdminFooterSettings({ initialSettings, initialSections, categori
     <div className="admin-footer-section-heading"><div><span className="admin-eyebrow">Directorio</span><h2>Columnas y enlaces</h2><p>Edita cada bloque por separado, ordena sus enlaces y decide cuáles se publican.</p></div></div>
     <div className="admin-footer-groups">{sections.map((section, index) => <article className="admin-panel-card admin-footer-group" key={section.section_key}>
       <header><span className="admin-footer-card-number">{String(index + 2).padStart(2, "0")}</span><div className="admin-footer-section-fields"><label>Título de la columna<input value={section.title} onChange={(event) => setSections((current) => current.map((item) => item.section_key === section.section_key ? { ...item, title: event.target.value } : item))} /></label><label>Orden<input type="number" min="0" step="10" value={section.sort_order} onChange={(event) => setSections((current) => current.map((item) => item.section_key === section.section_key ? { ...item, sort_order: Number(event.target.value) } : item))} /></label></div><label className="admin-switch"><input type="checkbox" checked={section.active} onChange={(event) => setSections((current) => current.map((item) => item.section_key === section.section_key ? { ...item, active: event.target.checked } : item))} /><span /><small>{section.active ? "Visible" : "Oculta"}</small></label></header>
-      {section.section_key === "collections" ? <div className="admin-collection-picker"><p>Selecciona hasta 6 categorías para mostrar en el pie.</p>{categories.map((category) => { const checked = section.links.some((link) => link.slug === category.slug || link.label === category.name); return <label key={category.id}><input type="checkbox" checked={checked} disabled={busy || (!checked && section.links.length >= 6)} onChange={() => toggleCollection(category)} /><span>{category.name}</span></label>; })}<small>{section.links.length} de 6 seleccionadas</small></div> : <div className="admin-footer-link-list">{section.links.map((link) => <div className="admin-footer-link-row" key={link.id}><span className={link.active ? "is-live" : ""} aria-hidden="true" /><div><strong>{link.label}</strong><small>{link.href}</small></div><em>{link.sort_order}</em><button type="button" onClick={() => setEditing(link)} aria-label={`Editar ${link.label}`} title="Editar">✎</button><button type="button" className="is-danger" onClick={() => setDeleting(link)} aria-label={`Eliminar ${link.label}`} title="Eliminar">×</button></div>)}</div>}
+      {section.section_key === "collections" ? <div className="admin-collection-picker"><p>Selecciona hasta 6 categorías y pulsa Guardar sección para publicarlas.</p>{categories.map((category) => { const checked = selectedCategories.includes(category.id); return <label key={category.id}><input type="checkbox" checked={checked} disabled={busy || (!checked && selectedCategories.length >= 6)} onChange={() => toggleCollection(category)} /><span>{category.name}</span></label>; })}<small>{selectedCategories.length} de 6 seleccionadas</small></div> : <div className="admin-footer-link-list">{section.links.map((link) => <div className="admin-footer-link-row" key={link.id}><span className={link.active ? "is-live" : ""} aria-hidden="true" /><div><strong>{link.label}</strong><small>{link.href}</small></div><em>{link.sort_order}</em><button type="button" onClick={() => setEditing(link)} aria-label={`Editar ${link.label}`} title="Editar">✎</button><button type="button" className="is-danger" onClick={() => setDeleting(link)} aria-label={`Eliminar ${link.label}`} title="Eliminar">×</button></div>)}</div>}
       <footer>{section.section_key !== "collections" && <button type="button" className="admin-secondary-button" onClick={() => setEditing({ ...emptyLink(section.section_key), sort_order: (section.links.at(-1)?.sort_order ?? 0) + 10 })}>+ Agregar página</button>}<button type="button" className="admin-primary-button" disabled={busy} onClick={() => saveSection(section)}>Guardar sección</button></footer>
     </article>)}</div>
     {message && <p className="admin-form-message" role="status">{message}</p>}

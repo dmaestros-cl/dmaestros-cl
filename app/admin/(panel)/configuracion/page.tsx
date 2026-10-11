@@ -12,7 +12,7 @@ export default async function SettingsPage() {
     supabase.from("hero_slides").select("*").order("sort_order"),
     supabase.from("store_settings").select("whatsapp_number,instagram_url,instagram_active,facebook_url,facebook_active,youtube_url,youtube_active,tiktok_url,tiktok_active").eq("id", true).maybeSingle(),
     supabase.from("footer_settings").select("business_name,location_text,contact_email,service_text,service_hours,weekday_open,weekday_close,saturday_active,saturday_open,saturday_close,sunday_active,sunday_open,sunday_close").eq("id", true).maybeSingle(),
-    supabase.from("footer_sections").select("section_key,title,sort_order,active,footer_links(id,section_key,label,href,slug,page_content,sort_order,active)").order("sort_order"),
+    supabase.from("footer_sections").select("section_key,title,sort_order,active,footer_links(id,section_key,label,href,slug,category_id,page_content,sort_order,active)").order("sort_order"),
     supabase.from("categories").select("id,name,slug,active").eq("active", true).order("sort_order"),
   ]);
   return <>
