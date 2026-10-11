@@ -29,7 +29,7 @@ export function AdminFooterSettings({ initialSettings, initialSections, categori
     const { error } = await supabase.from("footer_settings").update({ ...settings, updated_at: new Date().toISOString() }).eq("id", true).select("id").single();
     setBusy(false);
     if (error) setMessage(error.message);
-    else setSuccess({ title: "Datos actualizados", message: "La información de contacto ya está publicada en el pie de página." });
+    else setSuccess({ title: "Datos actualizados", message: "La información de contacto ya está publicada en el pie de página y en la página Contacto." });
   }
 
   async function saveSection(section: FooterSection) {
@@ -82,7 +82,7 @@ export function AdminFooterSettings({ initialSettings, initialSections, categori
 
   return <div className="admin-footer-settings">
     <form className="admin-panel-card admin-footer-contact" onSubmit={saveContact}>
-      <header><div><span className="admin-eyebrow">Identidad y contacto</span><h2>Datos de DMaestros</h2><p>Información que aparece en la primera columna del pie de página.</p></div><span className="admin-footer-card-number">01</span></header>
+      <header><div><span className="admin-eyebrow">Identidad y contacto</span><h2>Datos de DMaestros</h2><p>Estos datos se muestran en el pie de página y en la página Contacto. El número de WhatsApp se edita en Ventas y WhatsApp.</p></div><span className="admin-footer-card-number">01</span></header>
       <div className="admin-footer-form-grid">
         <label>Nombre comercial<input value={settings.business_name} onChange={(event) => setSettings({ ...settings, business_name: event.target.value })} required /></label>
         <label>Correo de contacto<input type="email" value={settings.contact_email} onChange={(event) => setSettings({ ...settings, contact_email: event.target.value })} required /></label>
