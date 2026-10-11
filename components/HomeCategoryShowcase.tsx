@@ -3,6 +3,40 @@
 import { ProductActions } from "@/components/ProductActions";
 import { ProductCardMedia } from "@/components/ProductCardMedia";
 import type { CatalogProduct } from "@/lib/catalog";
+import { useEffect, useRef, useState } from "react";
+
+function CategoryCarousel({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+  const carousel = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ previous: false, next: false });
+
+  useEffect(() => {
+    const element = carousel.current;
+    if (!element) return;
+    const update = () => {
+      const previous = element.scrollLeft > 2;
+      const next = element.scrollWidth - element.clientWidth - element.scrollLeft > 2;
+      setEdges((current) => current.previous === previous && current.next === next ? current : { previous, next });
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    for (const card of element.children) observer.observe(card);
+    element.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => { observer.disconnect(); element.removeEventListener("scroll", update); };
+  }, [count]);
+
+  function move(direction: number) {
+    const element = carousel.current;
+    if (!element) return;
+    element.scrollBy({ left: direction * element.clientWidth, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  }
+
+  return <div className="home-carousel-shell">
+    <div ref={carousel} className="home-product-carousel" aria-label={`Productos de ${title}`}>{children}</div>
+    {edges.previous && <button type="button" className="home-carousel-arrow is-prev" aria-label={`Ver productos anteriores de ${title}`} onClick={() => move(-1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7" /></svg></button>}
+    {edges.next && <button type="button" className="home-carousel-arrow is-next" aria-label={`Ver más productos de ${title}`} onClick={() => move(1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5 7 7-7 7" /></svg></button>}
+  </div>;
+}
 
 const sectionDescriptions: Record<string, string> = {
   "Cajas decorativas": "Diseñadas para momentos y objetos que valoras.",
@@ -52,10 +86,7 @@ export function HomeCategoryShowcase({
             </div>
           </header>
 
-          <div
-            className="home-product-carousel"
-            aria-label={`Productos de ${category.title}`}
-          >
+          <CategoryCarousel title={category.title} count={category.products.length}>
             {category.products.map((product) => (
               <article
                 className="home-product-card"
@@ -71,7 +102,7 @@ export function HomeCategoryShowcase({
                 />
               </article>
             ))}
-          </div>
+          </CategoryCarousel>
         </article>
       ))}
     </section>
