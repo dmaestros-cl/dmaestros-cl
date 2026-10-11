@@ -19,7 +19,7 @@ export function AdminSocialSettings({ initialSettings }: { initialSettings: Soci
   const [message, setMessage] = useState("");
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setMessage("");
-    const { error } = await createClient().from("store_settings").update({ ...settings, updated_at: new Date().toISOString() }).eq("id", true);
+    const { error } = await createClient().from("store_settings").update({ ...settings, updated_at: new Date().toISOString() }).eq("id", true).select("id").single();
     setBusy(false); setMessage(error ? error.message : "Redes sociales actualizadas correctamente.");
   }
   return <form className="admin-panel-card admin-social-settings" onSubmit={save}><span className="admin-eyebrow">Pie de página</span><h2>Redes sociales</h2><p>Edita el enlace y decide qué redes se muestran públicamente.</p><div className="admin-social-list">{networks.map((network) => {
