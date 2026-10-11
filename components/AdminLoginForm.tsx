@@ -21,13 +21,18 @@ export function AdminLoginForm() {
     setLoading(true);
     setMessage("");
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
     setLoading(false);
     if (error) {
       setMessage("Clave incorrecta. Intenta nuevamente.");
+      return;
+    }
+    if (data.user.app_metadata?.role !== "admin") {
+      await supabase.auth.signOut();
+      setMessage("Esta cuenta no tiene privilegios de administrador.");
       return;
     }
     router.replace("/admin");

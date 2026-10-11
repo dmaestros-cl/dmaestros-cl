@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AdminDeleteDialog } from "@/components/AdminDeleteDialog";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { AdminSuccessDialog } from "@/components/AdminSuccessDialog";
 
 export type AdminCategoryRow = {
@@ -173,16 +174,23 @@ export function AdminCategoryManager({
   const open = creating || Boolean(editing);
   return (
     <>
-      <button
-        className="admin-primary-button admin-list-create"
-        type="button"
-        onClick={() => {
-          setEditing(null);
-          setCreating(true);
-        }}
-      >
-        ＋ Nueva categoría
-      </button>
+      <AdminPageHeader
+        eyebrow="Organización"
+        title="Categorías"
+        description="Ordena y controla las colecciones visibles en la tienda."
+        action={
+          <button
+            className="admin-primary-button admin-list-create"
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setCreating(true);
+            }}
+          >
+            ＋ Nueva categoría
+          </button>
+        }
+      />
       {message && (
         <p className="admin-table-message" role="status">
           {message}

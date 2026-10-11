@@ -9,7 +9,10 @@ export async function requireAdmin() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect("/admin/login");
-  if (user.email?.toLowerCase() !== ADMIN_EMAIL) redirect("/admin/login?error=unauthorized");
+  const isAdmin =
+    user.email?.toLowerCase() === ADMIN_EMAIL &&
+    user.app_metadata?.role === "admin";
+  if (!isAdmin) redirect("/admin/login?error=unauthorized");
 
   return { supabase, user };
 }

@@ -5,6 +5,7 @@ import {
   type AdminProductRow,
 } from "@/components/AdminProductTable";
 import { requireAdmin } from "@/lib/admin";
+import Link from "next/link";
 
 export default async function ProductsPage() {
   const { supabase } = await requireAdmin();
@@ -55,7 +56,14 @@ export default async function ProductsPage() {
         eyebrow="Catálogo"
         title="Productos"
         description={`${rows.length} productos disponibles para administrar.`}
-        action={!productsError && !categoriesError ? <AdminProductForm categories={categories ?? []} /> : undefined}
+        action={!productsError && !categoriesError ? (
+          <div className="admin-page-actions">
+            <Link href="/admin/pedidos" className="admin-secondary-button">
+              Pagos y envíos
+            </Link>
+            <AdminProductForm categories={categories ?? []} />
+          </div>
+        ) : undefined}
       />
       {productsError || categoriesError ? (
         <div className="admin-alert">

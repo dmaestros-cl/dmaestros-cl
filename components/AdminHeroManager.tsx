@@ -125,13 +125,24 @@ export function AdminHeroManager({ slides }: { slides: Slide[] }) {
     </section>
 
     <form className="admin-panel-card admin-hero-form" ref={formRef} onSubmit={addSlide}>
-      <span className="admin-eyebrow">Nueva diapositiva</span><h2>Agregar fotos al hero</h2><p>Sube una versión vertical para móvil y otra panorámica para escritorio.</p>
+      <span className="admin-eyebrow">Nueva diapositiva</span><h2>Agregar imagen principal</h2><p>Usa una imagen para cada tipo de pantalla. Ambas son obligatorias.</p>
       <label>Título<input name="title" defaultValue="Creamos piezas que forman parte de tu vida" required /></label>
       <label>Descripción<textarea name="description" rows={3} defaultValue="Muebles, juguetes y decoración en maderas nobles, hechos a mano con dedicación y pasión." /></label>
-      <div className="admin-form-row"><label>Texto del botón<input name="cta" defaultValue="Conoce nuestras piezas" /></label><label>Destino<input name="href" defaultValue="/tienda" /></label></div>
-      <label>Texto alternativo<input name="alt" placeholder="Describe la fotografía" required /></label>
-      <label className="admin-file-field">Foto móvil <small>Vertical · se convierte a WebP y se limita a 1200 × 2200 px</small><input name="mobile" type="file" accept="image/png,image/jpeg,image/webp" required /></label>
-      <label className="admin-file-field">Foto escritorio <small>Panorámica · se convierte a WebP y se limita a 2400 × 1400 px</small><input name="desktop" type="file" accept="image/png,image/jpeg,image/webp" required /></label>
+      <div className="admin-hero-image-fields">
+        <label className="admin-file-field admin-hero-upload is-desktop">
+          <span>Imagen para escritorio</span>
+          <strong>2400 × 1400 px</strong>
+          <small>Formato horizontal · proporción 12:7 · JPG, PNG o WebP</small>
+          <input name="desktop" type="file" accept="image/png,image/jpeg,image/webp" required />
+        </label>
+        <label className="admin-file-field admin-hero-upload is-mobile">
+          <span>Imagen para móvil</span>
+          <strong>1200 × 2200 px</strong>
+          <small>Formato vertical · proporción 6:11 · JPG, PNG o WebP</small>
+          <input name="mobile" type="file" accept="image/png,image/jpeg,image/webp" required />
+        </label>
+      </div>
+      <div className="admin-form-row"><label>Texto del botón<input name="cta" defaultValue="Conoce nuestras piezas" /></label><label>Enlace del botón<input name="href" defaultValue="/tienda" /></label></div>
       <button className="admin-primary-button" type="submit" disabled={busy}>{busy ? "Guardando…" : "Agregar al hero"}</button>
       {message && <p className="admin-form-message" role="status">{message}</p>}
     </form>

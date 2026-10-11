@@ -250,7 +250,6 @@ export function AdminProductTable({
             <thead>
               <tr>
                 <SortableHeader label="Producto" column="name" sortKey={sortKey} direction={sortDirection} onSort={sortBy} />
-                <SortableHeader label="Categoría" column="category" sortKey={sortKey} direction={sortDirection} onSort={sortBy} />
                 <SortableHeader label="Precio" column="price" sortKey={sortKey} direction={sortDirection} onSort={sortBy} />
                 <SortableHeader label="Stock" column="stock" sortKey={sortKey} direction={sortDirection} onSort={sortBy} />
                 <SortableHeader label="Estado" column="status" sortKey={sortKey} direction={sortDirection} onSort={sortBy} />
@@ -284,7 +283,6 @@ export function AdminProductTable({
                         <strong>{product.name}</strong>
                       </div>
                     </td>
-                    <td>{product.category_name}</td>
                     <td>
                       {product.price == null ? (
                         "Por cotizar"

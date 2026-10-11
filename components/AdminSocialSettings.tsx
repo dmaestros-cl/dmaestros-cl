@@ -4,12 +4,13 @@ import Image from "next/image";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type SocialSettings = { instagram_url: string; instagram_active: boolean; facebook_url: string; facebook_active: boolean; youtube_url: string; youtube_active: boolean };
+type SocialSettings = { instagram_url: string; instagram_active: boolean; facebook_url: string; facebook_active: boolean; youtube_url: string; youtube_active: boolean; tiktok_url: string; tiktok_active: boolean };
 
 const networks = [
   { key: "instagram", label: "Instagram", icon: "/images/brands/instagram.svg", placeholder: "https://instagram.com/dmaestros" },
   { key: "facebook", label: "Facebook", icon: "/images/brands/facebook.svg", placeholder: "https://facebook.com/dmaestros" },
   { key: "youtube", label: "YouTube", icon: "/images/brands/youtube.svg", placeholder: "https://youtube.com/@dmaestros" },
+  { key: "tiktok", label: "TikTok", icon: "/images/brands/tiktok.svg", placeholder: "https://www.tiktok.com/@dmaestros" },
 ] as const;
 
 export function AdminSocialSettings({ initialSettings }: { initialSettings: SocialSettings }) {

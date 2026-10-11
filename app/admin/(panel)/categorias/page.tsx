@@ -1,4 +1,3 @@
-import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { AdminCategoryManager, type AdminCategoryRow } from "@/components/AdminCategoryManager";
 import { requireAdmin } from "@/lib/admin";
 
@@ -15,7 +14,6 @@ export default async function CategoriesPage() {
     product_count: category.products[0]?.count ?? 0,
   }));
   return <>
-    <AdminPageHeader eyebrow="Organización" title="Categorías" description="Ordena y controla las colecciones visibles en la tienda." />
     <AdminCategoryManager initialRows={rows} />
   </>;
 }
