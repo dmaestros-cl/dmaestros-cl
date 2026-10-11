@@ -25,7 +25,7 @@ export function AdminFooterSettings({ initialSettings, initialSections, categori
 
   async function saveContact(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setMessage("");
-    const { error } = await supabase.from("footer_settings").upsert({ id: true, ...settings, updated_at: new Date().toISOString() });
+    const { error } = await supabase.from("footer_settings").update({ ...settings, updated_at: new Date().toISOString() }).eq("id", true).select("id").single();
     setBusy(false);
     if (error) setMessage(error.message);
     else setSuccess({ title: "Datos actualizados", message: "La información de contacto ya está publicada en el pie de página." });
