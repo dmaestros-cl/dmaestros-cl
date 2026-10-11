@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { formatCompression, optimizeImage } from "@/lib/image-optimization";
 
@@ -17,6 +18,21 @@ type Slide = {
   mobile_asset_id?: string | null;
   desktop_asset_id?: string | null;
 };
+
+function HeroImagePreview({ src, mobile, title }: { src: string; mobile?: boolean; title: string }) {
+  const [failed, setFailed] = useState(false);
+  const label = mobile ? "Celular" : "Escritorio";
+
+  return <figure className={`admin-hero-preview${mobile ? " is-mobile" : ""}`}>
+    <figcaption><strong>{label}</strong><span>{mobile ? "Imagen vertical" : "Imagen horizontal"}</span></figcaption>
+    {src ? <a href={src} target="_blank" rel="noreferrer" aria-label={`Ver imagen de ${label.toLowerCase()} de ${title} en una nueva pestaña`}>
+      <div className="admin-hero-preview-frame">
+        {failed ? <span className="admin-hero-preview-empty">No se pudo cargar la vista previa.</span> : <Image src={src} alt={`${title} — ${label}`} fill sizes={mobile ? "(max-width: 600px) 280px, 240px" : "(max-width: 600px) 440px, 640px"} onError={() => setFailed(true)} />}
+      </div>
+      <span className="admin-hero-preview-link">Ver imagen completa <span aria-hidden="true">↗</span></span>
+    </a> : <div className="admin-hero-preview-frame"><span className="admin-hero-preview-empty">Sin imagen para {label.toLowerCase()}.</span></div>}
+  </figure>;
+}
 
 export function AdminHeroManager({ slides }: { slides: Slide[] }) {
   const router = useRouter();
@@ -118,9 +134,14 @@ export function AdminHeroManager({ slides }: { slides: Slide[] }) {
     <section className="admin-panel-card admin-hero-list">
       <header><div><span>Hero principal</span><h2>Imágenes publicadas</h2></div><b>{slides.length}</b></header>
       {slides.map((slide, index) => <article key={slide.id}>
-        <div className="admin-hero-thumb" style={{ backgroundImage: `url(${slide.desktop_image_url})` }} />
-        <div><small>Diapositiva {index + 1}</small><strong>{slide.title}</strong><span>{slide.active ? "Visible en la tienda" : "Oculta"}</span></div>
-        <div className="admin-row-actions"><button disabled={busy} onClick={() => toggleSlide(slide)}>{slide.active ? "Ocultar" : "Publicar"}</button><button className="is-danger" disabled={busy} onClick={() => removeSlide(slide)}>Eliminar</button></div>
+        <div className="admin-hero-slide-heading">
+          <div className="admin-hero-slide-copy"><small>Diapositiva {index + 1}</small><strong>{slide.title}</strong><span>{slide.active ? "Visible en la tienda" : "Oculta"}</span></div>
+          <div className="admin-row-actions"><button disabled={busy} onClick={() => toggleSlide(slide)}>{slide.active ? "Ocultar" : "Publicar"}</button><button className="is-danger" disabled={busy} onClick={() => removeSlide(slide)}>Eliminar</button></div>
+        </div>
+        <div className="admin-hero-previews">
+          <HeroImagePreview key={`desktop-${slide.desktop_image_url}`} src={slide.desktop_image_url} title={slide.title} />
+          <HeroImagePreview key={`mobile-${slide.mobile_image_url}`} src={slide.mobile_image_url} title={slide.title} mobile />
+        </div>
       </article>)}
     </section>
 
