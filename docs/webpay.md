@@ -45,7 +45,9 @@ Los clientes no pueden leer/escribir `webpay_transactions` ni ejecutar las funci
 
 Los callbacks se serializan con un bloqueo temporal persistido y la confirmación se valida contra monto, orden y sesión. Un pago aprobado no se degrada por un callback repetido. Las claves de idempotencia se reutilizan para el mismo carrito/datos; un carrito distinto es una compra distinta. El límite de creación es de 20 intentos/hora por IP seudonimizada en Vercel.
 
-Si el comprador cierra la pestaña antes de retornar, no habrá confirmación automática en segundo plano: revisar transacciones pendientes y reconciliar con Transbank antes de despachar. La consulta está disponible en el comprobante y para operación manual; no hay cron de conciliación ni reembolsos automáticos en esta entrega. Cancelar un despacho en el panel NO reembolsa el pago. No borrar pedidos Webpay: conservan la referencia de auditoría.
+Si el comprador cierra la pestaña antes de retornar, no habrá confirmación automática en segundo plano: revisar transacciones pendientes y reconciliar con Transbank antes de despachar. La consulta está disponible en el comprobante y para operación manual; no hay cron de conciliación ni reembolsos automáticos en esta entrega. Cancelar un despacho en el panel NO reembolsa el pago.
+
+El administrador puede eliminar un pedido con confirmación de su número. La operación `admin_delete_order` borra atómicamente `webpay_transactions`, `order_items` y `orders`; no modifica cuentas, catálogo, imágenes compartidas, respaldos ni registros en Transbank, y NO reembolsa dinero. Se bloquea mientras el pago se está verificando o existe un pago productivo pendiente. Exportar/conservar los antecedentes necesarios antes de eliminar un pago real autorizado: el comprobante de la tienda deja de estar disponible. Los pedidos no tienen archivos propios almacenados en Vercel ni Supabase Storage; la tienda consulta la base de datos en cada solicitud autenticada y los contadores del panel se actualizan al eliminar.
 
 ## Referencias oficiales
 
