@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useCart } from "@/components/CartProvider";
 import { createClient } from "@/lib/supabase/client";
 
 export default function CheckoutPage() {
-  const { items, clearCart } = useCart();
+  const { items } = useCart();
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const submitting = useRef(false);
   const [message, setMessage] = useState("");
+  const [paymentConfig, setPaymentConfig] = useState<{ enabled: boolean; testMode: boolean } | null>(null);
   const [regions, setRegions] = useState<{ code: string; name: string }[]>([]);
   const [rates, setRates] = useState<
     {
@@ -44,6 +45,10 @@ export default function CheckoutPage() {
   const total = subtotal + shippingCost;
 
   useEffect(() => {
+    fetch("/api/payments/webpay/config", { cache: "no-store" }).then((response) => response.json()).then(setPaymentConfig).catch(() => setPaymentConfig({ enabled: false, testMode: false }));
+  }, []);
+
+  useEffect(() => {
     const supabase = createClient();
     Promise.all([
       supabase.from("shipping_regions").select("code,name").order("sort_order"),
@@ -52,6 +57,7 @@ export default function CheckoutPage() {
         .select(
           "commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max",
         )
+        .eq("active", true)
         .order("commune_name"),
     ]).then(([regionResult, rateResult]) => {
       const nextRegions = regionResult.data ?? [];
@@ -94,93 +100,79 @@ export default function CheckoutPage() {
   }, [regionCode]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!items.length) return;
+    if (!items.length || submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setMessage("");
     const form = new FormData(event.currentTarget);
-    const orderId = crypto.randomUUID();
     if (!selectedRate && !requiresPickup) {
       setBusy(false);
+      submitting.current = false;
       return setMessage("Selecciona una comuna con despacho disponible.");
     }
-    const supabase = createClient();
-    const regionName =
-      regions.find((region) => region.code === regionCode)?.name ?? "";
-    const { error } = await supabase.from("orders").insert({
-      id: orderId,
-      customer_name: String(form.get("name")),
-      customer_email: String(form.get("email")),
-      customer_phone: String(form.get("phone")),
-      shipping_address: String(form.get("address")),
-      shipping_region: regionName,
-      shipping_commune: requiresPickup
-        ? "Retiro en taller"
-        : selectedRate?.commune_name,
-      shipping_rate_code: requiresPickup ? null : selectedRate?.commune_code,
-      shipping_cost: shippingCost,
-      total,
-    });
-    if (error) {
+    try {
+      const payload = {
+        customer: { name: String(form.get("name")), email: String(form.get("email")), phone: String(form.get("phone")), address: String(form.get("address") ?? "") },
+        items: items.map((item) => ({ sku: item.product.sku, quantity: item.quantity })),
+        regionCode, communeCode: requiresPickup ? "" : communeCode, expectedTotal: total,
+      };
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(payload)));
+      const fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      const stored = sessionStorage.getItem("dmaestros-webpay-attempt");
+      let attempt: { id: string; fingerprint: string } | null = null;
+      try { attempt = stored ? JSON.parse(stored) : null; } catch { /* Replace an invalid local attempt. */ }
+      if (!attempt || attempt.fingerprint !== fingerprint) attempt = { id: crypto.randomUUID(), fingerprint };
+      sessionStorage.setItem("dmaestros-webpay-attempt", JSON.stringify(attempt));
+      const response = await fetch("/api/payments/webpay", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, attemptId: attempt.id }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No pudimos iniciar el pago.");
+      if (result.resultUrl === "/checkout/resultado") { window.location.assign(result.resultUrl); return; }
+      const paymentUrl = new URL(result.url);
+      if (!["https://webpay3g.transbank.cl", "https://webpay3gint.transbank.cl"].includes(paymentUrl.origin) || !/^[a-zA-Z0-9]{64}$/.test(result.token)) throw new Error("Respuesta de pago inválida.");
+      // Card details are entered exclusively on Transbank's hosted payment page.
+      const paymentForm = document.createElement("form");
+      paymentForm.method = "POST";
+      paymentForm.action = paymentUrl.href;
+      const tokenInput = document.createElement("input");
+      tokenInput.type = "hidden";
+      tokenInput.name = "token_ws";
+      tokenInput.value = result.token;
+      paymentForm.appendChild(tokenInput);
+      document.body.appendChild(paymentForm);
+      paymentForm.submit();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No pudimos conectar con Webpay. Tu carrito se conserva.");
       setBusy(false);
-      return setMessage(error.message);
+      submitting.current = false;
     }
-    const { data: products } = await supabase
-      .from("products")
-      .select("id,sku")
-      .in(
-        "sku",
-        items.map((item) => item.product.sku),
-      );
-    const { error: itemError } = await supabase.from("order_items").insert(
-      items.map((item) => ({
-        order_id: orderId,
-        product_id: products?.find(
-          (product) => product.sku === item.product.sku,
-        )?.id,
-        sku: item.product.sku,
-        product_name: item.product.name,
-        unit_price: item.product.salePrice ?? item.product.price,
-        quantity: item.quantity,
-      })),
-    );
-    setBusy(false);
-    if (itemError) return setMessage(itemError.message);
-    clearCart();
-    setDone(true);
   }
   return (
     <div className="shop-shell">
       <SiteHeader />
       <main className="checkout-page">
-        {done ? (
-          <section className="checkout-success">
-            <span>✓</span>
-            <h1>Pedido recibido</h1>
-            <p>
-              Registramos tu compra con su destino y costo de despacho. Nos
-              pondremos en contacto para coordinar el pago.
-            </p>
-            <Link href="/tienda">Volver a la tienda</Link>
-          </section>
+        {!items.length ? (
+          <section className="checkout-success"><h1>Tu carrito está vacío</h1><p>Agrega productos para continuar con el pago.</p><Link href="/tienda">Explorar la tienda</Link></section>
         ) : (
           <>
             <header>
               <span>Finalizar compra</span>
               <h1>Datos de contacto y envío</h1>
             </header>
+            {paymentConfig?.testMode && <div className="checkout-test-banner" role="status"><strong>Webpay en modo de prueba</strong><span>No se realizará ningún cobro real ni despacho. Usa exclusivamente tarjetas de prueba de Transbank.</span></div>}
+            {paymentConfig && !paymentConfig.enabled && <div className="checkout-test-banner" role="status">El pago en línea aún no está disponible. <Link href="/informacion/contacto">Contacta a DMaestros</Link> para coordinar tu compra.</div>}
             <div className="checkout-layout">
               <form className="checkout-form" onSubmit={submit}>
                 <label>
                   Nombre completo
-                  <input name="name" required />
+                  <input name="name" autoComplete="name" maxLength={150} required />
                 </label>
                 <label>
                   Correo
-                  <input name="email" type="email" required />
+                  <input name="email" type="email" autoComplete="email" maxLength={254} required />
                 </label>
                 <label>
                   Teléfono
-                  <input name="phone" type="tel" required />
+                  <input name="phone" type="tel" autoComplete="tel" maxLength={30} required />
                 </label>
                 <label>
                   Región
@@ -224,6 +216,7 @@ export default function CheckoutPage() {
                     : "Dirección de envío"}
                   <textarea
                     name="address"
+                    maxLength={500}
                     rows={3}
                     required={!requiresPickup}
                     placeholder={
@@ -254,11 +247,12 @@ export default function CheckoutPage() {
                 ) : null}
                 <button
                   disabled={
-                    busy || !items.length || (!selectedRate && !requiresPickup)
+                    busy || !paymentConfig?.enabled || !items.length || (!selectedRate && !requiresPickup)
                   }
                 >
-                  {busy ? "Procesando…" : "Confirmar pedido"}
+                  {busy ? "Conectando con Webpay…" : paymentConfig?.testMode ? "Probar pago con Webpay Plus" : "Pagar con Webpay Plus"}
                 </button>
+                <p className="checkout-payment-note">Paga con tarjeta de crédito, débito o prepago en el sitio seguro de Transbank. No guardamos los datos de tu tarjeta.</p>
                 {message && <p role="status">{message}</p>}
               </form>
               <aside className="cart-summary">

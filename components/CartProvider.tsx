@@ -15,22 +15,24 @@ type CartContextValue = {
   setQuantity: (sku: string, quantity: number) => void;
   removeFromCart: (sku: string) => void;
   clearCart: () => void;
+  ready: boolean;
+  completePurchase: (receiptId: string, lines: { sku: string; quantity: number }[]) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
+  const [ready, setReady] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   useEffect(() => {
     const saved = window.localStorage.getItem("dmaestros-cart");
-    if (!saved) return;
-    let parsed: CartLine[];
-    try { parsed = JSON.parse(saved); } catch { window.localStorage.removeItem("dmaestros-cart"); return; }
-    const timer = window.setTimeout(() => setItems(parsed), 0);
+    let parsed: CartLine[] = [];
+    try { parsed = saved ? JSON.parse(saved) : []; if (!Array.isArray(parsed)) parsed = []; } catch { window.localStorage.removeItem("dmaestros-cart"); }
+    const timer = window.setTimeout(() => { setItems(parsed); setReady(true); }, 0);
     return () => window.clearTimeout(timer);
   }, []);
-  useEffect(() => { window.localStorage.setItem("dmaestros-cart", JSON.stringify(items)); }, [items]);
+  useEffect(() => { if (ready) window.localStorage.setItem("dmaestros-cart", JSON.stringify(items)); }, [items, ready]);
 
   useEffect(() => {
     if (!notification) return;
@@ -40,6 +42,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<CartContextValue>(() => ({
     items,
+    ready,
     itemCount: items.reduce((total, item) => total + item.quantity, 0),
     addToCart(product) {
       setItems((current) => {
@@ -58,7 +61,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
     removeFromCart(sku) { setItems((current) => current.filter((item) => item.product.sku !== sku)); },
     clearCart() { setItems([]); },
-  }), [items]);
+    completePurchase(receiptId, lines) {
+      if (!ready || window.localStorage.getItem(`dmaestros-paid-${receiptId}`)) return;
+      window.localStorage.setItem(`dmaestros-paid-${receiptId}`, "1");
+      const quantities = new Map(lines.map((line) => [line.sku, line.quantity]));
+      setItems((current) => current.flatMap((item) => {
+        const quantity = item.quantity - (quantities.get(item.product.sku) ?? 0);
+        return quantity > 0 ? [{ ...item, quantity }] : [];
+      }));
+    },
+  }), [items, ready]);
 
   return (
     <CartContext.Provider value={value}>
