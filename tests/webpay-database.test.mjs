@@ -23,7 +23,7 @@ test("Webpay SQL: atomic orders, authoritative totals, RLS and verified settleme
     create policy "Admin manages orders" on public.orders for all using (public.is_dmaestros_admin()) with check (public.is_dmaestros_admin());
     alter table public.products add column sale_price numeric(12,2);
     alter table public.categories add column shipping_rm_only boolean not null default false;`);
-  for (const file of ["20261010232000_sales_and_store_settings.sql", "20261010233000_checkout_orders.sql", "20261011000000_commune_shipping.sql", "20261011060000_product_manual_availability.sql", "20261013150000_webpay_plus.sql"]) {
+  for (const file of ["20261010232000_sales_and_store_settings.sql", "20261010233000_checkout_orders.sql", "20261011000000_commune_shipping.sql", "20261011060000_product_manual_availability.sql", "20261013150000_webpay_plus.sql", "20261013203000_order_email_notifications.sql"]) {
     await db.exec(await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"));
   }
   await db.exec(`
@@ -91,6 +91,32 @@ test("Webpay SQL: atomic orders, authoritative totals, RLS and verified settleme
     assert.equal(await finish(await create(), { status: "FAILED", response_code: -1 }), "failed");
     assert.equal(await finish(await create(), { status: "INITIALIZED" }, "cancel"), "cancelled");
     assert.equal(await finish(await create(), { status: "INITIALIZED" }, "timeout"), "expired");
+  });
+  await t.test("emails queue only on verified approval, lock concurrent sends and freeze retry payloads", async () => {
+    const payment = await create();
+    const jobs = () => db.query("select * from public.order_email_notifications where order_id=$1 order by audience", [payment.order_id]);
+    const claim = (payload = { subject: "original", to: ["test@example.com"] }) => db.query("select public.claim_order_email($1,'customer',$2) as job", [payment.order_id, payload]);
+    assert.equal((await jobs()).rows.length, 0);
+    assert.equal((await claim()).rows[0].job, null);
+    await finish(payment);
+    await finish(payment);
+    assert.equal((await jobs()).rows.length, 2);
+    assert.equal((await claim()).rows[0].job.attempts, 1);
+    assert.equal((await claim()).rows[0].job, null);
+    await db.query("update public.order_email_notifications set locked_until=null,state='failed' where order_id=$1 and audience='customer'", [payment.order_id]);
+    assert.equal((await claim({ subject: "changed" })).rows[0].job.payload.subject, "original");
+    await db.query("update public.order_email_notifications set locked_until=null,first_attempt_at=now()-interval '24 hours' where order_id=$1 and audience='customer'", [payment.order_id]);
+    assert.equal((await claim()).rows[0].job, null);
+    assert.equal((await jobs()).rows.find((job) => job.audience === "customer").state, "review");
+    await db.query("update public.order_email_notifications set state='sent' where order_id=$1 and audience='admin'", [payment.order_id]);
+    assert.equal((await db.query("select public.claim_order_email($1,'admin','{}') as job", [payment.order_id])).rows[0].job, null);
+    await db.exec("set role anon; select set_config('request.jwt.claim.role','anon',false)");
+    await assert.rejects(jobs(), /permission denied/);
+    await assert.rejects(claim(), /permission denied/);
+    await db.exec("reset role; select set_config('request.jwt.claim.role','service_role',false)");
+    await db.query("delete from public.webpay_transactions where order_id=$1", [payment.order_id]);
+    await db.query("delete from public.orders where id=$1", [payment.order_id]);
+    assert.equal((await jobs()).rows.length, 0);
   });
   await t.test("RLS denies guest payment records and direct order writes", async () => {
     await db.exec("set role anon; select set_config('request.jwt.claim.role','anon',false)");

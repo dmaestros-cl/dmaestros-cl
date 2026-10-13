@@ -39,6 +39,14 @@ Ejecutar `npm run test:webpay`, `npm run lint` y `npm run build`. Los tests SQL 
 
 ## Seguridad y operación
 
+### Confirmaciones por correo
+
+Aplicar también `20261013203000_order_email_notifications.sql`. Al confirmar un pago se encolan, en la misma transacción, dos notificaciones privadas: comprador y administrador. No se encolan rechazos ni cancelaciones, ni se envían compras históricas retroactivamente. Configurar `RESEND_API_KEY`, `EMAIL_FROM` (dominio verificado) y `ADMIN_NOTIFICATION_EMAIL` en Vercel. El remitente actual es DMaestros; el destinatario administrativo es independiente del correo de acceso al panel.
+
+Los callbacks y la consulta de estado procesan la cola después de responder mediante `after`. Cada mensaje contiene logo, número/fecha del pedido, contacto y envío, SKU/cantidades/precios, despacho, total y autorización con solo los últimos cuatro dígitos de tarjeta. Los pedidos de integración se rotulan PRUEBA, sin cobro ni despacho. Se envían HTML y texto plano, por separado para cada destinatario. No se exponen tokens, claves ni CVV.
+
+La cola usa bloqueo temporal, un payload inmutable y una clave de idempotencia por pedido/destinatario. Se reintentan fallos transitorios hasta tres veces por ejecución (seis intentos totales), siempre dentro de 23 horas del primer intento; luego requieren revisión para evitar duplicados fuera de la ventana de 24h de Resend. No hay cron de reenvío: un proceso interrumpido se retoma al volver a consultar el pago. Revisar filas `failed`, `review` o bloqueos vencidos de `order_email_notifications` si el proveedor falla. `sent` significa aceptado por Resend; verificar `last_event=delivered` en Resend para acreditar entrega al servidor receptor, no lectura o carpeta de entrada. Eliminar el pedido elimina su cola local, no correos ya entregados ni registros del proveedor.
+
 Precios, ofertas, disponibilidad manual y tarifas se resuelven en SQL en una transacción junto al pedido y sus líneas. Se mantiene la política existente de disponibilidad manual: stock positivo limita la cantidad; stock cero con disponibilidad manual activa permite fabricación a pedido. No se implementan reservas automáticas de inventario.
 
 Los clientes no pueden leer/escribir `webpay_transactions` ni ejecutar las funciones de pago. No se almacenan PAN completo ni CVV; solo los últimos cuatro dígitos devueltos por Transbank. Las credenciales y tokens no se imprimen en logs. El comprobante usa una cookie HttpOnly y consultas sin caché; no acepta un parámetro del navegador como prueba de aprobación.

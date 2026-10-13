@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
+import { sendOrderNotifications } from "@/lib/order-notifications";
 import { createPaymentClient } from "@/lib/supabase/payments";
 import { UUID } from "@/lib/webpay-contract";
 import { getWebpayConfig } from "@/lib/webpay";
@@ -13,8 +14,10 @@ export async function POST(request: NextRequest) {
     if (error || !data) throw new Error("Receipt unavailable");
     const payment = data as Payment;
     if (payment.token) await finalizePayment(payment, payment.return_event ?? "error");
+    after(() => sendOrderNotifications(payment.order_id));
   } catch {
     console.error("webpay_status_verification_failed");
   }
   return new NextResponse(null, { status: 303, headers: { ...PAYMENT_HEADERS, Location: "/checkout/resultado" } });
 }
+export const maxDuration = 120;

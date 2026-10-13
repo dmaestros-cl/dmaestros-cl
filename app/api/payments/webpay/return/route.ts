@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import { sendOrderNotifications } from "@/lib/order-notifications";
 import { createPaymentClient } from "@/lib/supabase/payments";
 import { parseWebpayReturn } from "@/lib/webpay-contract";
 import { getWebpayConfig } from "@/lib/webpay";
@@ -25,6 +26,8 @@ async function handleReturn(request: Request) {
     payment = data as Payment;
     response.cookies.set(RECEIPT_COOKIE, payment.receipt_id, { httpOnly: true, secure: config.siteOrigin.startsWith("https:"), sameSite: "lax", path: "/", maxAge: 86400 });
     await finalizePayment(payment, parsed.event);
+    const orderId = payment.order_id;
+    after(() => sendOrderNotifications(orderId));
   } catch {
     console.error("webpay_return_verification_failed", { paymentId: payment?.id ?? "unknown" });
     if (!payment) {
@@ -36,3 +39,4 @@ async function handleReturn(request: Request) {
 
 export const GET = handleReturn;
 export const POST = handleReturn;
+export const maxDuration = 120;
