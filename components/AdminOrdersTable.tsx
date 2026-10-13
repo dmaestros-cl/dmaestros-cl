@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AdminEditOrderDialog, AdminRemoveOrderDialog } from "@/components/AdminOrderDialog";
 import { orderNumber, type AdminOrder as Order } from "@/lib/admin-orders";
+import { isCommercialOrder } from "@/lib/commerce-policy";
 
 const shippingOptions = [
   ["por_preparar", "Pendiente"],
@@ -25,7 +26,7 @@ function paymentState(order: Order) {
 }
 
 export function AdminOrdersTable({ initialOrders }: { initialOrders: Order[] }) {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState(() => initialOrders.filter(isCommercialOrder));
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [editing, setEditing] = useState<Order | null>(null);
@@ -64,7 +65,7 @@ export function AdminOrdersTable({ initialOrders }: { initialOrders: Order[] }) 
           <td><strong>#{orderNumber(order)}</strong></td>
           <td><strong>{order.customer_name}</strong><small>{order.customer_email}</small></td>
           <td>{new Date(order.created_at).toLocaleDateString("es-CL")}</td>
-          <td><select className={`admin-order-select is-${paymentState(order)}`} value={paymentState(order)} disabled={Boolean(busyId) || order.payment_provider === "webpay_plus"} onChange={(event) => updatePayment(order, event.target.value)} aria-label={`Estado del pago del pedido ${order.order_number}`}><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option><option value="cancelado">Cancelado</option></select>{order.payment_provider === "webpay_plus" && <small>{order.payment_environment === "integration" ? "PRUEBA · Sin cobro ni despacho" : "Webpay Plus · Automático"}</small>}</td>
+          <td><select className={`admin-order-select is-${paymentState(order)}`} value={paymentState(order)} disabled={Boolean(busyId) || order.payment_provider === "webpay_plus"} onChange={(event) => updatePayment(order, event.target.value)} aria-label={`Estado del pago del pedido ${order.order_number}`}><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option><option value="cancelado">Cancelado</option></select>{order.payment_provider === "webpay_plus" && <small>Webpay Plus · Automático</small>}</td>
           <td><select className={`admin-order-select is-${order.status === "cancelado" ? "cancelado" : order.shipping_status}`} value={order.status === "cancelado" ? "cancelado" : order.shipping_status} disabled={Boolean(busyId) || (order.payment_provider === "webpay_plus" && (order.payment_status !== "authorized" || order.payment_environment === "integration"))} onChange={(event) => updateShipping(order, event.target.value)} aria-label={`Estado del envío del pedido ${order.order_number}`}>{shippingOptions.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></td>
           <td><strong>${Number(order.total).toLocaleString("es-CL")}</strong></td>
           <td className="admin-order-actions-cell"><div className="admin-product-actions">

@@ -13,7 +13,7 @@ export async function sendOrderNotifications(orderId: string) {
     const site = process.env.SITE_URL?.trim();
     if (!apiKey || !from || !admin || !validEmail(admin) || !site) throw new Error("email_configuration_missing");
     const db = createPaymentClient();
-    const { data: order, error: orderError } = await db.from("orders").select("order_number,customer_name,customer_email,customer_phone,shipping_address,shipping_region,shipping_commune,shipping_cost,total,created_at").eq("id", orderId).eq("payment_status", "authorized").maybeSingle();
+    const { data: order, error: orderError } = await db.from("orders").select("order_number,customer_name,customer_email,customer_phone,shipping_address,shipping_region,shipping_commune,shipping_cost,total,created_at").eq("id", orderId).eq("payment_status", "authorized").eq("payment_environment", "production").maybeSingle();
     if (orderError) throw new Error("email_order_unavailable");
     if (!order) return;
     if (!validEmail(order.customer_email)) throw new Error("email_recipient_invalid");

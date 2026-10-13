@@ -11,7 +11,7 @@ export default function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
   const [message, setMessage] = useState("");
-  const [paymentConfig, setPaymentConfig] = useState<{ enabled: boolean; testMode: boolean } | null>(null);
+  const [paymentConfig, setPaymentConfig] = useState<{ enabled: boolean } | null>(null);
   const [regions, setRegions] = useState<{ code: string; name: string }[]>([]);
   const [rates, setRates] = useState<
     {
@@ -45,7 +45,7 @@ export default function CheckoutPage() {
   const total = subtotal + shippingCost;
 
   useEffect(() => {
-    fetch("/api/payments/webpay/config", { cache: "no-store" }).then((response) => response.json()).then(setPaymentConfig).catch(() => setPaymentConfig({ enabled: false, testMode: false }));
+    fetch("/api/payments/webpay/config", { cache: "no-store" }).then((response) => response.json()).then(setPaymentConfig).catch(() => setPaymentConfig({ enabled: false }));
   }, []);
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function CheckoutPage() {
   }, [regionCode]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!items.length || submitting.current) return;
+    if (!items.length || submitting.current || !paymentConfig?.enabled) return;
     submitting.current = true;
     setBusy(true);
     setMessage("");
@@ -158,8 +158,7 @@ export default function CheckoutPage() {
               <span>Finalizar compra</span>
               <h1>Datos de contacto y envío</h1>
             </header>
-            {paymentConfig?.testMode && <div className="checkout-test-banner" role="status"><strong>Webpay en modo de prueba</strong><span>No se realizará ningún cobro real ni despacho. Usa exclusivamente tarjetas de prueba de Transbank.</span></div>}
-            {paymentConfig && !paymentConfig.enabled && <div className="checkout-test-banner" role="status">El pago en línea aún no está disponible. <Link href="/informacion/contacto">Contacta a DMaestros</Link> para coordinar tu compra.</div>}
+            {paymentConfig && !paymentConfig.enabled && <div className="checkout-availability-note" role="status">El pago en línea aún no está disponible. <Link href="/informacion/contacto">Contacta a DMaestros</Link> para coordinar tu compra.</div>}
             <div className="checkout-layout">
               <form className="checkout-form" onSubmit={submit}>
                 <label>
@@ -250,7 +249,7 @@ export default function CheckoutPage() {
                     busy || !paymentConfig?.enabled || !items.length || (!selectedRate && !requiresPickup)
                   }
                 >
-                  {busy ? "Conectando con Webpay…" : paymentConfig?.testMode ? "Probar pago con Webpay Plus" : "Pagar con Webpay Plus"}
+                  {busy ? "Conectando con Webpay…" : "Pagar con Webpay Plus"}
                 </button>
                 <p className="checkout-payment-note">Paga con tarjeta de crédito, débito o prepago en el sitio seguro de Transbank. No guardamos los datos de tu tarjeta.</p>
                 {message && <p role="status">{message}</p>}

@@ -1,27 +1,19 @@
 import "server-only";
-import { CheckoutError, WEBPAY_PRODUCTION_COMMERCE_CODE, WEBPAY_TOKEN, type WebpayResult } from "./webpay-contract";
+import { CheckoutError, WEBPAY_TOKEN, type WebpayResult } from "./webpay-contract";
+import { readWebpaySettings } from "./webpay-settings";
 
-export function getWebpayConfig() {
-  const environment = process.env.WEBPAY_ENVIRONMENT?.trim();
-  const commerceCode = process.env.WEBPAY_COMMERCE_CODE?.trim() || (environment === "production" ? WEBPAY_PRODUCTION_COMMERCE_CODE : "");
-  const apiKey = process.env.WEBPAY_API_KEY_SECRET?.trim();
-  const siteUrl = process.env.SITE_URL?.trim();
-  if ((environment !== "production" && environment !== "integration") || !/^\d{12}$/.test(commerceCode) || !apiKey || !siteUrl) {
-    throw new CheckoutError("Webpay aún no está habilitado. Contacta a la tienda para coordinar tu compra.", 503);
-  }
-  const site = new URL(siteUrl);
-  const local = site.hostname === "localhost" || site.hostname === "127.0.0.1";
-  if (site.username || site.password || site.pathname !== "/" || site.search || site.hash || (site.protocol !== "https:" && !(local && environment === "integration" && site.protocol === "http:"))) {
-    throw new CheckoutError("La dirección de retorno de Webpay no está configurada correctamente.", 503);
-  }
-  if ((process.env.VERCEL_ENV === "production" && environment === "integration" && process.env.WEBPAY_ALLOW_TEST_ON_PRODUCTION?.trim() !== "true") || (process.env.VERCEL_ENV === "preview" && environment === "production") || (environment === "production" && commerceCode.startsWith("5970555555"))) {
-    throw new CheckoutError("La configuración del ambiente de Webpay no es válida.", 503);
-  }
-  const origin = environment === "production" ? "https://webpay3g.transbank.cl" : "https://webpay3gint.transbank.cl";
-  return { environment, commerceCode, apiKey, siteOrigin: site.origin, origin };
+export function getWebpayConfig(checkout = false) {
+  try { return readWebpaySettings(process.env, checkout); }
+  catch (error) { throw new CheckoutError(error instanceof Error ? error.message : "Webpay no está disponible.", 503); }
 }
 
 type Config = ReturnType<typeof getWebpayConfig>;
+
+// Public checkout only accepts real commerce credentials. Historical callbacks
+// retain getWebpayConfig so certification records can still be reconciled.
+export function getCheckoutWebpayConfig() {
+  return getWebpayConfig(true);
+}
 
 async function request<T>(config: Config, method: "POST" | "GET" | "PUT", token?: string, body?: object): Promise<T> {
   if (token && !WEBPAY_TOKEN.test(token)) throw new CheckoutError("Token de pago inválido.");

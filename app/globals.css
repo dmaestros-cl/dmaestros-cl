@@ -548,8 +548,7 @@ body:has(.admin-shell) .site-footer,body:has(.admin-login-page) .site-footer { d
 .webpay-receipt dd { margin:0; font-weight:700; text-align:right; overflow-wrap:anywhere; }
 .webpay-receipt-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:24px; }
 .webpay-receipt-actions a,.webpay-receipt-actions button { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:12px 20px; border:0; border-radius:8px; color:#fff; background:var(--navy); font:inherit; font-weight:700; cursor:pointer; }
-.webpay-receipt .webpay-test-warning { padding:12px; border-radius:8px; background:#fff2d7; color:#785207; font-weight:700; }
-.checkout-test-banner { display:grid; gap:6px; padding:18px 22px; margin-bottom:24px; border:1px solid #e9cc85; border-radius:10px; color:#704c10; background:#fff5dc; font-size:14px; line-height:1.6; }
+.checkout-availability-note { display:grid; gap:6px; padding:18px 22px; margin-bottom:24px; border:1px solid #d5e2e9; border-radius:10px; color:#17394d; background:#f4f8fa; font-size:14px; line-height:1.6; }
 .checkout-form input,.checkout-form select,.checkout-form textarea { min-width:0; width:100%; max-width:100%; }
 @media (max-width:850px) { .checkout-layout { grid-template-columns:minmax(0,1fr); }.checkout-form { grid-template-columns:minmax(0,1fr); }.checkout-form label:last-of-type,.checkout-form button { grid-column:auto; } }
 

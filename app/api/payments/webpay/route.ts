@@ -2,12 +2,12 @@ import { createHash, createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createPaymentClient } from "@/lib/supabase/payments";
 import { CheckoutError, parseCheckoutInput } from "@/lib/webpay-contract";
-import { createWebpay, getWebpayConfig } from "@/lib/webpay";
+import { createWebpay, getCheckoutWebpayConfig } from "@/lib/webpay";
 import { checkSameOrigin, PAYMENT_HEADERS, RECEIPT_COOKIE, type Payment } from "@/lib/webpay-payment";
 
 export async function POST(request: Request) {
   try {
-    const config = getWebpayConfig();
+    const config = getCheckoutWebpayConfig();
     checkSameOrigin(request, config.siteOrigin);
     if (!request.headers.get("content-type")?.startsWith("application/json")) throw new CheckoutError("Solicitud inválida.", 415);
     const raw = await request.text();

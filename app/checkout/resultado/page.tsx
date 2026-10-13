@@ -28,6 +28,16 @@ async function getReceipt() {
 
 export default async function PaymentResultPage() {
   const receipt = await getReceipt();
+  if (receipt?.environment === "integration") {
+    return <div className="shop-shell"><SiteHeader /><main className="checkout-page">
+      <section className="webpay-receipt is-pending">
+        <p className="webpay-receipt-kicker">Webpay Plus · Transbank</p>
+        <h1>Operación no comercial</h1>
+        <p>Este registro técnico no corresponde a una compra. No se realizó ningún cobro ni se generará un despacho.</p>
+        <div className="webpay-receipt-actions"><Link href="/tienda">Volver a la tienda</Link></div>
+      </section>
+    </main></div>;
+  }
   const paid = receipt?.state === "authorized";
   const finalFailure = receipt && ["failed", "cancelled", "expired"].includes(receipt.state);
   const unstarted = receipt?.state === "creating" && !receipt.token;
@@ -42,7 +52,6 @@ export default async function PaymentResultPage() {
     <section className={`webpay-receipt ${paid ? "is-approved" : "is-pending"}`}>
       <span className="webpay-receipt-icon" aria-hidden="true">{paid ? "✓" : "!"}</span>
       <p className="webpay-receipt-kicker">Webpay Plus · Transbank</p><h1>{title}</h1><p>{description}</p>
-      {receipt?.environment === "integration" && <p className="webpay-test-warning">AMBIENTE DE PRUEBAS — este comprobante no corresponde a un cobro real.</p>}
       {receipt && <dl>
         <div><dt>Orden de compra</dt><dd>{receipt.buy_order}</dd></div>
         <div><dt>{paid ? "Total pagado" : "Total del pedido"}</dt><dd>${Number(receipt.amount).toLocaleString("es-CL")} CLP</dd></div>

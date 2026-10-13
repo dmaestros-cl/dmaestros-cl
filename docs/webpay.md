@@ -2,7 +2,9 @@
 
 ## Estado y activación
 
-La integración usa la API REST Webpay Plus v1.2. La primera publicación es **en modo de prueba**, por petición del propietario. Usa el código oficial de integración `597055555532` y su API key pública. `WEBPAY_ALLOW_TEST_ON_PRODUCTION=true` permite probar en el dominio publicado, con aviso visible en checkout y comprobante. Los pedidos llevan `payment_environment=integration` y no se pueden despachar desde el panel.
+La integración usa la API REST Webpay Plus v1.2. La certificación se envió a Transbank el 13-10-2026 con las nueve operaciones requeridas. El checkout público ahora acepta exclusivamente configuración productiva completa; mientras no esté disponible muestra un aviso de pago no disponible y no crea pedidos ni llama a Transbank. No se han activado cobros reales.
+
+Los pedidos con `payment_environment=integration` se conservan como antecedentes técnicos, pero se excluyen de Pedidos, sus contadores y el historial del cliente. No se borran ni se convierten en ventas. Sus comprobantes antiguos muestran «Operación no comercial» y no emiten confirmaciones de compra. Los registros manuales anteriores y los pedidos productivos siguen visibles.
 
 El código de comercio real solicitado es **597053098347**, reservado para la activación productiva posterior. El código por sí solo NO habilita cobros reales: Transbank debe entregar su **API Key Secret de producción**. No pegar claves privadas en chats ni subirlas a GitHub.
 
@@ -21,11 +23,13 @@ Para activar cobros reales posteriormente (NO durante pruebas), configurar en el
 2. Configurar las variables anteriores como Secret donde corresponda y desplegar. Sin configuración completa, el endpoint rechaza la compra antes de insertar pedidos o llamar a Transbank. No hay fallback silencioso a pruebas.
 3. Completar la validación exigida por Transbank. No declarar producción operativa sin una prueba autorizada de creación, pago, retorno y confirmación persistida.
 
+El cambio pendiente es de configuración, no de textos ni código: actualizar ambiente, código de comercio y API Key en Vercel Production y redesplegar. Validar después el primer pago real autorizado y la entrega de ambas notificaciones. El buzón administrativo `ventasdmaestros@gmail.com` se conserva por instrucción del propietario, pero Gmail rechazó su entrega durante la certificación; debe resolverse/verificarse antes de afirmar que las notificaciones administrativas están operativas.
+
 Retorno: `https://www.dmaestros.cl/api/payments/webpay/return`. Acepta GET y POST. No es un webhook de pagos autenticado por firma: cada retorno se verifica consultando directamente a Transbank.
 
 ## Pruebas
 
-Preferir un proyecto Supabase **separado de producción**, con sus migraciones aplicadas. Para la prueba en el sitio publicado solicitada por el propietario, cada pedido de integración se identifica explícitamente y el panel bloquea su despacho. En local configurar `WEBPAY_ENVIRONMENT=integration`, `SITE_URL=http://localhost:3000` y el código/API key públicos de integración indicados en la documentación oficial. Nunca mezclar el código productivo con la API key de integración. Vercel Preview rechaza configuración productiva; Vercel Production requiere habilitación explícita para pruebas.
+Preferir un proyecto Supabase **separado de producción**, con sus migraciones aplicadas. El checkout comercial ya no crea operaciones de integración, incluso si queda habilitada la variable histórica `WEBPAY_ALLOW_TEST_ON_PRODUCTION`. Esta variable solo permite reconciliar callbacks anteriores mientras siga configurado ese ambiente. Nunca mezclar credenciales de integración y producción. Vercel Preview rechaza configuración productiva. Las suites automatizadas utilizan PostgreSQL aislado y datos sintéticos, sin contactar a Transbank.
 
 Ejecutar `npm run test:webpay`, `npm run lint` y `npm run build`. Los tests SQL usan PostgreSQL embebido aislado, no datos reales. Luego probar en navegador con las tarjetas de prueba oficiales:
 
@@ -39,11 +43,26 @@ Ejecutar `npm run test:webpay`, `npm run lint` y `npm run build`. Los tests SQL 
 
 ## Seguridad y operación
 
+### Certificación y reembolsos exclusivamente de prueba
+
+`scripts/webpay-certification.mjs` permite consultar una operación de integración y ejecutar los dos casos de reembolso exigidos por el validador. El host y las credenciales públicas de sandbox están fijados en el script; no acepta configuración productiva ni crea pagos o ingresa tarjetas. Las compras se realizan por el checkout normal y el formulario seguro de Transbank.
+
+```sh
+node scripts/webpay-certification.mjs status TOKEN ORDEN MONTO_ORIGINAL
+node scripts/webpay-certification.mjs refund-test-only TOKEN ORDEN MONTO_ORIGINAL MONTO_REEMBOLSO RUTA_EVIDENCIA_JSON
+```
+
+Obtener el token y la orden exacta de una compra identificada como CERTIFICACIÓN WEBPAY, con `payment_environment=integration`. Antes del reembolso, la utilidad consulta a Transbank y exige coincidencia de orden/monto y autorización exitosa. No reintenta automáticamente un reembolso: si se pierde la respuesta, consultar estado y revisar la evidencia antes de actuar. Los JSON contienen tokens de certificación y deben mantenerse fuera de Git.
+
+Esta utilidad **no habilita reembolsos productivos ni agrega un botón al panel**. Conserva la respuesta y el estado posterior de Transbank como evidencia; no reescribe la aprobación original del pedido ni simula resultados en la base de datos. Los pedidos de prueba continúan bloqueados para despacho. La futura operación de reembolsos reales requiere conciliación y persistencia específicas en el panel.
+
+En las pruebas del 13-10-2026, la AMEX oficial de integración permitió crédito sin cuotas y tres cuotas. Usar las tarjetas publicadas en la documentación oficial vigente; nunca ingresar tarjetas reales en sandbox. La herramienta de validación exige nueve tokens de casos distintos, generados dentro de los últimos siete días.
+
 ### Confirmaciones por correo
 
 Aplicar también `20261013203000_order_email_notifications.sql`. Al confirmar un pago se encolan, en la misma transacción, dos notificaciones privadas: comprador y administrador. No se encolan rechazos ni cancelaciones, ni se envían compras históricas retroactivamente. Configurar `RESEND_API_KEY`, `EMAIL_FROM` (dominio verificado) y `ADMIN_NOTIFICATION_EMAIL` en Vercel. El remitente actual es DMaestros; el destinatario administrativo es independiente del correo de acceso al panel.
 
-Los callbacks y la consulta de estado procesan la cola después de responder mediante `after`. Cada mensaje contiene logo, número/fecha del pedido, contacto y envío, SKU/cantidades/precios, despacho, total y autorización con solo los últimos cuatro dígitos de tarjeta. Los pedidos de integración se rotulan PRUEBA, sin cobro ni despacho. Se envían HTML y texto plano, por separado para cada destinatario. No se exponen tokens, claves ni CVV.
+Los callbacks y la consulta de estado procesan la cola después de responder mediante `after`. El envío exige `payment_environment=production` y pago autorizado antes de reclamar cualquier mensaje. La plantilla también rechaza ambientes no productivos. Cada mensaje contiene logo, número/fecha del pedido, contacto y envío, SKU/cantidades/precios, despacho, total y autorización con solo los últimos cuatro dígitos de tarjeta, sin etiquetas de certificación. Se envían HTML y texto plano, por separado para cada destinatario. No se exponen tokens, claves ni CVV. Los correos históricos ya entregados no se pueden retirar de los buzones.
 
 La cola usa bloqueo temporal, un payload inmutable y una clave de idempotencia por pedido/destinatario. Se reintentan fallos transitorios hasta tres veces por ejecución (seis intentos totales), siempre dentro de 23 horas del primer intento; luego requieren revisión para evitar duplicados fuera de la ventana de 24h de Resend. No hay cron de reenvío: un proceso interrumpido se retoma al volver a consultar el pago. Revisar filas `failed`, `review` o bloqueos vencidos de `order_email_notifications` si el proveedor falla. `sent` significa aceptado por Resend; verificar `last_event=delivered` en Resend para acreditar entrega al servidor receptor, no lectura o carpeta de entrada. Eliminar el pedido elimina su cola local, no correos ya entregados ni registros del proveedor.
 
