@@ -10,6 +10,7 @@
     "test:webpay": "node --experimental-strip-types --test tests/webpay*.test.mjs",
     "test:orders": "node --experimental-strip-types --test tests/admin-orders*.test.mjs",
     "test:emails": "node --experimental-strip-types --test tests/order-email.test.mjs",
+    "test:shipping": "node --experimental-strip-types --test tests/shipping*.test.mjs",
     "check:supabase": "node --env-file=.env.local scripts/check-supabase.mjs"
   },
   "dependencies": {

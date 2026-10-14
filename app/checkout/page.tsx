@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useCart } from "@/components/CartProvider";
 import { createClient } from "@/lib/supabase/client";
+import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal, SHIPPING_SETTINGS_COLUMNS, type ShippingSettings } from "@/lib/shipping-policy";
 
 export default function CheckoutPage() {
   const { items } = useCart();
@@ -26,6 +27,8 @@ export default function CheckoutPage() {
   const [regionCode, setRegionCode] = useState("");
   const [communeCode, setCommuneCode] = useState("");
   const [restrictedSkus, setRestrictedSkus] = useState<string[]>([]);
+  const [shippingSettings, setShippingSettings] = useState<ShippingSettings | null>(null);
+  const [shippingError, setShippingError] = useState("");
   const subtotal = items.reduce(
     (sum, item) =>
       sum + (item.product.salePrice ?? item.product.price ?? 0) * item.quantity,
@@ -35,13 +38,14 @@ export default function CheckoutPage() {
     () => rates.filter((rate) => rate.region_code === regionCode),
     [rates, regionCode],
   );
-  const selectedRate = rates.find((rate) => rate.commune_code === communeCode);
+  const selectedRate = rates.find((rate) => rate.commune_code === communeCode && rate.region_code === regionCode);
   const requiresPickup = Boolean(
     regionCode &&
     regionCode !== "CL-RM" &&
     items.some((item) => restrictedSkus.includes(item.product.sku)),
   );
-  const shippingCost = requiresPickup ? 0 : Number(selectedRate?.price ?? 0);
+  const freeShipping = !requiresPickup && shippingSettings !== null && qualifiesForFreeShipping(subtotal, shippingSettings);
+  const shippingCost = requiresPickup || freeShipping ? 0 : Number(selectedRate?.price ?? 0);
   const total = subtotal + shippingCost;
 
   useEffect(() => {
@@ -50,6 +54,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const supabase = createClient();
+    let cancelled = false;
     Promise.all([
       supabase.from("shipping_regions").select("code,name").order("sort_order"),
       supabase
@@ -59,7 +64,11 @@ export default function CheckoutPage() {
         )
         .eq("active", true)
         .order("commune_name"),
-    ]).then(([regionResult, rateResult]) => {
+      supabase.from("shipping_settings").select(SHIPPING_SETTINGS_COLUMNS).eq("id", true).single(),
+    ]).then(([regionResult, rateResult, settingsResult]) => {
+      if (cancelled) return;
+      if (regionResult.error || rateResult.error || settingsResult.error) throw new Error("shipping_unavailable");
+      setShippingSettings(parseShippingSettings(settingsResult.data));
       const nextRegions = regionResult.data ?? [];
       setRegions(nextRegions);
       setRates(
@@ -69,7 +78,10 @@ export default function CheckoutPage() {
         })),
       );
       setRegionCode(nextRegions[0]?.code ?? "");
+    }).catch(() => {
+      if (!cancelled) setShippingError("No pudimos cargar las condiciones de envío. Actualiza la página antes de pagar.");
     });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -100,7 +112,7 @@ export default function CheckoutPage() {
   }, [regionCode]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!items.length || submitting.current || !paymentConfig?.enabled) return;
+    if (!items.length || submitting.current || !paymentConfig?.enabled || !shippingSettings || shippingError) return;
     submitting.current = true;
     setBusy(true);
     setMessage("");
@@ -111,6 +123,15 @@ export default function CheckoutPage() {
       return setMessage("Selecciona una comuna con despacho disponible.");
     }
     try {
+      // Recheck promotions before creating a payment. The database independently
+      // validates the final amount, including changes made during this request.
+      const { data: latest, error: settingsError } = await createClient().from("shipping_settings")
+        .select(SHIPPING_SETTINGS_COLUMNS).eq("id", true).single();
+      if (settingsError) throw new Error("No pudimos verificar el envío. Intenta nuevamente; no se inició ningún cobro.");
+      const currentSettings = parseShippingSettings(latest);
+      const currentCost = requiresPickup ? 0 : shippingCostForSubtotal(Number(selectedRate?.price ?? 0), subtotal, currentSettings);
+      setShippingSettings(currentSettings);
+      if (currentCost !== shippingCost) throw new Error("Las condiciones de envío cambiaron. Revisa el nuevo total y vuelve a pulsar Pagar.");
       const payload = {
         customer: { name: String(form.get("name")), email: String(form.get("email")), phone: String(form.get("phone")), address: String(form.get("address") ?? "") },
         items: items.map((item) => ({ sku: item.product.sku, quantity: item.quantity })),
@@ -159,6 +180,7 @@ export default function CheckoutPage() {
               <h1>Datos de contacto y envío</h1>
             </header>
             {paymentConfig && !paymentConfig.enabled && <div className="checkout-availability-note" role="status">El pago en línea aún no está disponible. <Link href="/informacion/contacto">Contacta a DMaestros</Link> para coordinar tu compra.</div>}
+            {shippingError && <div className="checkout-availability-note" role="alert">{shippingError}</div>}
             <div className="checkout-layout">
               <form className="checkout-form" onSubmit={submit}>
                 <label>
@@ -203,8 +225,7 @@ export default function CheckoutPage() {
                     </option>
                     {communeRates.map((rate) => (
                       <option key={rate.commune_code} value={rate.commune_code}>
-                        {rate.commune_name} · $
-                        {rate.price.toLocaleString("es-CL")}
+                        {rate.commune_name} · {freeShipping || rate.price === 0 ? "Gratis" : `$${rate.price.toLocaleString("es-CL")}`}
                       </option>
                     ))}
                   </select>
@@ -236,7 +257,7 @@ export default function CheckoutPage() {
                 ) : selectedRate ? (
                   <div className="checkout-delivery-note">
                     <strong>
-                      Despacho: ${shippingCost.toLocaleString("es-CL")}
+                      {shippingCost === 0 ? "Despacho gratis" : `Despacho: $${shippingCost.toLocaleString("es-CL")}`}
                     </strong>
                     <span>
                       Entrega estimada: {selectedRate.estimated_days_min}–
@@ -246,7 +267,7 @@ export default function CheckoutPage() {
                 ) : null}
                 <button
                   disabled={
-                    busy || !paymentConfig?.enabled || !items.length || (!selectedRate && !requiresPickup)
+                    busy || !paymentConfig?.enabled || !shippingSettings || Boolean(shippingError) || !items.length || (!selectedRate && !requiresPickup)
                   }
                 >
                   {busy ? "Conectando con Webpay…" : "Pagar con Webpay Plus"}
@@ -266,7 +287,7 @@ export default function CheckoutPage() {
                     {requiresPickup
                       ? "Retiro en taller"
                       : selectedRate
-                        ? `$${shippingCost.toLocaleString("es-CL")}`
+                        ? shippingCost === 0 ? "Gratis" : `$${shippingCost.toLocaleString("es-CL")}`
                         : "Por seleccionar"}
                   </strong>
                 </div>
@@ -277,7 +298,11 @@ export default function CheckoutPage() {
                 <p>
                   {requiresPickup
                     ? "El pedido deberá retirarse en el taller de DMaestros."
-                    : "Tarifa calculada según la comuna seleccionada."}
+                    : freeShipping
+                      ? "Tu compra tiene envío gratis a las comunas con despacho disponible."
+                      : shippingSettings?.mode === "threshold"
+                        ? `Agrega $${Math.max(0, shippingSettings.minimum_subtotal! - subtotal).toLocaleString("es-CL")} en productos para obtener envío gratis.`
+                        : "Tarifa calculada según la comuna seleccionada."}
                 </p>
               </aside>
             </div>

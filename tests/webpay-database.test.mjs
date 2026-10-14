@@ -23,7 +23,7 @@ test("Webpay SQL: atomic orders, authoritative totals, RLS and verified settleme
     create policy "Admin manages orders" on public.orders for all using (public.is_dmaestros_admin()) with check (public.is_dmaestros_admin());
     alter table public.products add column sale_price numeric(12,2);
     alter table public.categories add column shipping_rm_only boolean not null default false;`);
-  for (const file of ["20261010232000_sales_and_store_settings.sql", "20261010233000_checkout_orders.sql", "20261011000000_commune_shipping.sql", "20261011060000_product_manual_availability.sql", "20261013150000_webpay_plus.sql", "20261013203000_order_email_notifications.sql"]) {
+  for (const file of ["20261010232000_sales_and_store_settings.sql", "20261010233000_checkout_orders.sql", "20261011000000_commune_shipping.sql", "20261011060000_product_manual_availability.sql", "20261013150000_webpay_plus.sql", "20261013203000_order_email_notifications.sql", "20261014210000_free_shipping.sql"]) {
     await db.exec(await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"));
   }
   await db.exec(`
