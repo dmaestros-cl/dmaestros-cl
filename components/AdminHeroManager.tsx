@@ -20,6 +20,50 @@ type Slide = {
   desktop_asset_id?: string | null;
 };
 
+const HERO_IMAGE_FORMATS = {
+  desktop: { size: "1920 × 650 px", shape: "Panorámica · casi 3:1", minRatio: 2.5 },
+  mobile: { size: "1080 × 1350 px", shape: "Vertical corta · proporción 4:5", minRatio: 2 / 3 },
+};
+
+function HeroImageRatioAdvice({ ratio, mobile = false }: { ratio: number | null; mobile?: boolean }) {
+  const format = HERO_IMAGE_FORMATS[mobile ? "mobile" : "desktop"];
+  if (!ratio || ratio >= format.minRatio) return null;
+  return <span className="admin-hero-ratio-warning" role="status">Esta imagen es alta para el hero: parte del contenido puede quedar debajo de la primera pantalla. Prepara una composición de {format.size}, sin estirar la imagen.</span>;
+}
+
+function HeroImageUpload({ mobile = false, disabled }: { mobile?: boolean; disabled: boolean }) {
+  const variant = mobile ? "mobile" : "desktop";
+  const format = HERO_IMAGE_FORMATS[variant];
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [error, setError] = useState("");
+  const selection = useRef(0);
+
+  async function inspectImage(file?: File) {
+    const currentSelection = ++selection.current;
+    setDimensions(null);
+    setError("");
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) return setError("La imagen original no puede superar 20 MB.");
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const size = { width: bitmap.width, height: bitmap.height };
+      bitmap.close();
+      if (currentSelection === selection.current) setDimensions(size);
+    } catch {
+      if (currentSelection === selection.current) setError("No se pudo leer la imagen. Elige un archivo JPG, PNG o WebP válido.");
+    }
+  }
+
+  return <label className={`admin-file-field admin-hero-upload is-${variant}`}>
+    <span>Imagen para {mobile ? "móvil" : "escritorio"}</span>
+    <strong>{format.size}</strong>
+    <small id={`hero-${variant}-format`}>Tamaño recomendado · {format.shape} · JPG, PNG o WebP</small>
+    <input name={variant} type="file" accept="image/png,image/jpeg,image/webp" required disabled={disabled} aria-describedby={`hero-${variant}-format hero-${variant}-result`} onChange={(event) => void inspectImage(event.target.files?.[0])} />
+    <span id={`hero-${variant}-result`} className="admin-hero-image-result" role="status">{error || (dimensions ? `Imagen seleccionada: ${dimensions.width} × ${dimensions.height} px.` : "")}</span>
+    <HeroImageRatioAdvice ratio={dimensions ? dimensions.width / dimensions.height : null} mobile={mobile} />
+  </label>;
+}
+
 function HeroTextFields({ slide, disabled }: { slide?: Slide; disabled: boolean }) {
   const [title, setTitle] = useState(slide?.title ?? "");
   const [description, setDescription] = useState(slide?.description ?? "");
@@ -46,16 +90,18 @@ function HeroTextFields({ slide, disabled }: { slide?: Slide; disabled: boolean 
 
 function HeroImagePreview({ src, mobile, title }: { src: string; mobile?: boolean; title: string }) {
   const [failed, setFailed] = useState(false);
+  const [ratio, setRatio] = useState<number | null>(null);
   const label = mobile ? "Celular" : "Escritorio";
 
   return <figure className={`admin-hero-preview${mobile ? " is-mobile" : ""}`}>
     <figcaption><strong>{label}</strong><span>{mobile ? "Imagen vertical" : "Imagen horizontal"}</span></figcaption>
     {src ? <a href={src} target="_blank" rel="noreferrer" aria-label={`Ver imagen de ${label.toLowerCase()} de ${title} en una nueva pestaña`}>
       <div className="admin-hero-preview-frame">
-        {failed ? <span className="admin-hero-preview-empty">No se pudo cargar la vista previa.</span> : <Image src={src} alt={`${title} — ${label}`} fill sizes={mobile ? "(max-width: 600px) 280px, 240px" : "(max-width: 600px) 440px, 640px"} onError={() => setFailed(true)} />}
+        {failed ? <span className="admin-hero-preview-empty">No se pudo cargar la vista previa.</span> : <Image src={src} alt={`${title} — ${label}`} fill sizes={mobile ? "(max-width: 600px) 280px, 240px" : "(max-width: 600px) 440px, 640px"} onLoad={(event) => setRatio(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)} onError={() => setFailed(true)} />}
       </div>
       <span className="admin-hero-preview-link">Ver imagen completa <span aria-hidden="true">↗</span></span>
     </a> : <div className="admin-hero-preview-frame"><span className="admin-hero-preview-empty">Sin imagen para {label.toLowerCase()}.</span></div>}
+    {!failed && <HeroImageRatioAdvice ratio={ratio} mobile={mobile} />}
   </figure>;
 }
 
@@ -201,21 +247,11 @@ export function AdminHeroManager({ slides }: { slides: Slide[] }) {
     </section>
 
     <form className="admin-panel-card admin-hero-form" ref={formRef} onSubmit={addSlide}>
-      <span className="admin-eyebrow">Nueva diapositiva</span><h2>Agregar imagen principal</h2><p>Usa una imagen para cada tipo de pantalla. Ambas son obligatorias.</p>
+      <span className="admin-eyebrow">Nueva diapositiva</span><h2>Agregar imagen principal</h2><p>Usa una imagen para cada tipo de pantalla. Ambas son obligatorias. Se muestran completas a todo el ancho: cuanto más alta sea la imagen, más habrá que desplazarse para verla. En escritorio, distribuye logos y productos en una composición panorámica.</p>
       <HeroTextFields key={newSlideVersion} disabled={busy} />
       <div className="admin-hero-image-fields">
-        <label className="admin-file-field admin-hero-upload is-desktop">
-          <span>Imagen para escritorio</span>
-          <strong>2400 × 1400 px</strong>
-          <small>Formato horizontal · proporción 12:7 · JPG, PNG o WebP</small>
-          <input name="desktop" type="file" accept="image/png,image/jpeg,image/webp" required />
-        </label>
-        <label className="admin-file-field admin-hero-upload is-mobile">
-          <span>Imagen para móvil</span>
-          <strong>1200 × 2200 px</strong>
-          <small>Formato vertical · proporción 6:11 · JPG, PNG o WebP</small>
-          <input name="mobile" type="file" accept="image/png,image/jpeg,image/webp" required />
-        </label>
+        <HeroImageUpload key={`desktop-${newSlideVersion}`} disabled={busy} />
+        <HeroImageUpload key={`mobile-${newSlideVersion}`} mobile disabled={busy} />
       </div>
       <button className="admin-primary-button" type="submit" disabled={busy}>{busy ? "Guardando…" : "Agregar al hero"}</button>
       {message && <p className="admin-form-message" role="status">{message}</p>}

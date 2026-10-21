@@ -513,6 +513,8 @@ body:has(.admin-shell) .site-footer,body:has(.admin-login-page) .site-footer { d
 .admin-hero-preview-link { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px; padding-top:8px; color:#173f58; font-size:11px; font-weight:700; }
 .admin-hero-preview > a:hover .admin-hero-preview-link { text-decoration:underline; text-underline-offset:3px; }
 .admin-hero-preview-empty { padding:16px; color:#70818a; font-size:12px; line-height:1.5; text-align:center; }
+.admin-hero-ratio-warning,.admin-hero-upload > .admin-hero-ratio-warning { display:block; padding:10px; border:1px solid #ebd5a7; border-radius:6px; color:#78561c; background:#fff6e4; font-size:12px; font-weight:400; line-height:1.5; }
+.admin-hero-upload > .admin-hero-image-result { color:#506875; font-size:11px; font-weight:400; line-height:1.5; }
 .admin-hero-form,.admin-hero-form label,.admin-hero-form input,.admin-hero-form textarea { min-width:0; }
 .admin-hero-form.admin-hero-editor { padding:18px; border:1px solid #dce5e9; border-radius:10px; background:#f8fafb; }
 .admin-hero-text-fields { display:grid; gap:14px; min-width:0; margin:0; padding:0; border:0; }
