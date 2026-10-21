@@ -4,6 +4,7 @@ import Image, { getImageProps } from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { HeroSlide } from "@/lib/hero-slides";
+import ktaruLogo from "@/public/images/logo-ktaru-transparent.png";
 
 export function PrimaryHero({ slides }: { slides: HeroSlide[] }) {
   const [active, setActive] = useState(0);
@@ -35,7 +36,14 @@ export function PrimaryHero({ slides }: { slides: HeroSlide[] }) {
       </picture>
 
       {hasCopy && <div className="primary-hero-copy">
-        <Image className="primary-hero-mark" src="/images/logo-mark-transparent-v3.png" width={415} height={352} alt="" aria-hidden="true" />
+        <div className="primary-hero-brands">
+          <span className="primary-hero-brand is-dm">
+            <Image className="primary-hero-mark" src="/images/logo-mark-transparent-v3.png" width={354} height={300} sizes="90px" alt="DMaestros" />
+          </span>
+          <span className="primary-hero-brand is-ktaru">
+            <Image className="primary-hero-mark" src={ktaruLogo} sizes="160px" alt="Ktaru — Madera, diseño e imaginación" />
+          </span>
+        </div>
         {title && <h1>{title}</h1>}
         {description && <p>{description}</p>}
         {hasButton && <Link className="primary-hero-cta" href={slide.href}>{cta}</Link>}

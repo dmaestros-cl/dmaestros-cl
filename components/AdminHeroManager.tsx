@@ -78,12 +78,12 @@ function HeroTextFields({ slide, disabled }: { slide?: Slide; disabled: boolean 
 
   return <fieldset className="admin-hero-text-fields" disabled={disabled}>
     <legend>Textos sobre la imagen</legend>
-    <p>Puedes dejar cualquier campo vacío. Sin título, descripción ni botón, también se oculta el logo superpuesto.</p>
+    <p>Puedes dejar cualquier campo vacío. Sin título, descripción ni botón, también se ocultan los logos superpuestos de DM y Ktaru.</p>
     <button className="admin-hero-clear" type="button" onClick={clearText} disabled={imageOnly}>Dejar solo la imagen</button>
     <label>Título (opcional)<input name="title" value={title} onChange={(event) => setTitle(event.target.value)} /></label>
     <label>Descripción (opcional)<textarea name="description" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
     <label>Texto del botón (opcional)<input name="cta" value={cta} onChange={(event) => setCta(event.target.value)} placeholder="Conoce nuestras piezas" /></label>
-    <p className="admin-hero-copy-status" role="status">{imageOnly ? "Al guardar se mostrará solo la imagen, sin textos, logo ni botón superpuestos." : "Al guardar se mostrarán los campos que tengan texto."}</p>
+    <p className="admin-hero-copy-status" role="status">{imageOnly ? "Al guardar se mostrará solo la imagen, sin textos, logos ni botón superpuestos." : "Al guardar se mostrarán los campos que tengan texto."}</p>
     <label>Descripción accesible de la imagen<input name="alt" defaultValue={slide?.alt ?? ""} placeholder="Describe lo que aparece en la imagen" /><small>Se usa en lectores de pantalla; no se dibuja sobre la imagen.</small></label>
   </fieldset>;
 }
