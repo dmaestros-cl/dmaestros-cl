@@ -503,6 +503,7 @@ body:has(.admin-shell) .site-footer,body:has(.admin-login-page) .site-footer { d
 .admin-hero-slide-copy > span { color:#70818a; font-size:12px; }
 .admin-hero-previews { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:14px; }
 .admin-hero-preview { min-width:0; margin:0; padding:12px; border:1px solid #dce5e9; border-radius:10px; background:#f8fafb; }
+.admin-hero-format-guide { margin:0 0 20px; padding:14px; border:1px solid #cddfe7; border-radius:8px; background:#edf5f8; color:#355465; font-size:13px; line-height:1.6; }
 .admin-hero-preview figcaption { display:grid; gap:4px; margin-bottom:12px; }
 .admin-hero-preview figcaption strong { color:#17394d; font-size:14px; }
 .admin-hero-preview figcaption span { color:#70818a; font-size:11px; }

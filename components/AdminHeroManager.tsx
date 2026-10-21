@@ -92,9 +92,10 @@ function HeroImagePreview({ src, mobile, title }: { src: string; mobile?: boolea
   const [failed, setFailed] = useState(false);
   const [ratio, setRatio] = useState<number | null>(null);
   const label = mobile ? "Celular" : "Escritorio";
+  const format = HERO_IMAGE_FORMATS[mobile ? "mobile" : "desktop"];
 
   return <figure className={`admin-hero-preview${mobile ? " is-mobile" : ""}`}>
-    <figcaption><strong>{label}</strong><span>{mobile ? "Imagen vertical" : "Imagen horizontal"}</span></figcaption>
+    <figcaption><strong>{label}</strong><span>Recomendada: {format.size}</span><span>{format.shape}</span></figcaption>
     {src ? <a href={src} target="_blank" rel="noreferrer" aria-label={`Ver imagen de ${label.toLowerCase()} de ${title} en una nueva pestaña`}>
       <div className="admin-hero-preview-frame">
         {failed ? <span className="admin-hero-preview-empty">No se pudo cargar la vista previa.</span> : <Image src={src} alt={`${title} — ${label}`} fill sizes={mobile ? "(max-width: 600px) 280px, 240px" : "(max-width: 600px) 440px, 640px"} onLoad={(event) => setRatio(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)} onError={() => setFailed(true)} />}
@@ -229,6 +230,7 @@ export function AdminHeroManager({ slides }: { slides: Slide[] }) {
   return <div className="admin-config-grid">
     <section className="admin-panel-card admin-hero-list">
       <header><div><span>Hero principal</span><h2>Imágenes publicadas</h2></div><b>{slides.length}</b></header>
+      <p className="admin-hero-format-guide">Medidas para generar las nuevas imágenes: <strong>escritorio {HERO_IMAGE_FORMATS.desktop.size}</strong> y <strong>móvil {HERO_IMAGE_FORMATS.mobile.size}</strong>. Reorganiza logos y productos para cada formato; no estires la imagen anterior. La web conserva la imagen completa y ajusta su altura a la proporción del archivo.</p>
       {slides.map((slide, index) => <article key={slide.id}>
         <div className="admin-hero-slide-heading">
           <div className="admin-hero-slide-copy"><small>Diapositiva {index + 1}</small><strong>{slide.title.trim() || "Sin título superpuesto"}</strong><span>{slide.active ? "Visible en la tienda" : "Oculta"}</span></div>
@@ -248,11 +250,11 @@ export function AdminHeroManager({ slides }: { slides: Slide[] }) {
 
     <form className="admin-panel-card admin-hero-form" ref={formRef} onSubmit={addSlide}>
       <span className="admin-eyebrow">Nueva diapositiva</span><h2>Agregar imagen principal</h2><p>Usa una imagen para cada tipo de pantalla. Ambas son obligatorias. Se muestran completas a todo el ancho: cuanto más alta sea la imagen, más habrá que desplazarse para verla. En escritorio, distribuye logos y productos en una composición panorámica.</p>
-      <HeroTextFields key={newSlideVersion} disabled={busy} />
       <div className="admin-hero-image-fields">
         <HeroImageUpload key={`desktop-${newSlideVersion}`} disabled={busy} />
         <HeroImageUpload key={`mobile-${newSlideVersion}`} mobile disabled={busy} />
       </div>
+      <HeroTextFields key={newSlideVersion} disabled={busy} />
       <button className="admin-primary-button" type="submit" disabled={busy}>{busy ? "Guardando…" : "Agregar al hero"}</button>
       {message && <p className="admin-form-message" role="status">{message}</p>}
     </form>
