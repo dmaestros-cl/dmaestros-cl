@@ -9,7 +9,7 @@ import ktaruLogo from "@/public/images/logo-ktaru-transparent.png";
 export function PrimaryHero({ slides }: { slides: HeroSlide[] }) {
   const [active, setActive] = useState(0);
   const slide = slides[active] ?? slides[0];
-  const common = { alt: slide.alt, sizes: "100vw" };
+  const common = { alt: slide.alt, sizes: "100vw", loading: "eager" as const };
   const desktopSize = slide.desktopSize ?? { width: 1672, height: 941 };
   const mobileSize = slide.mobileSize ?? { width: 896, height: 1754 };
   const { props: { srcSet: desktopSrcSet } } = getImageProps({ ...common, src: slide.desktopImage, ...desktopSize, quality: 88 });
@@ -40,6 +40,7 @@ export function PrimaryHero({ slides }: { slides: HeroSlide[] }) {
           <span className="primary-hero-brand is-dm">
             <Image className="primary-hero-mark" src="/images/logo-mark-transparent-v3.png" width={354} height={300} sizes="90px" alt="DMaestros" />
           </span>
+          <span className="primary-hero-brand-divider" aria-hidden="true" />
           <span className="primary-hero-brand is-ktaru">
             <Image className="primary-hero-mark" src={ktaruLogo} sizes="160px" alt="Ktaru — Madera, diseño e imaginación" />
           </span>

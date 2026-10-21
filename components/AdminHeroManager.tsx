@@ -21,8 +21,8 @@ type Slide = {
 };
 
 const HERO_IMAGE_FORMATS = {
-  desktop: { size: "1920 × 650 px", shape: "Panorámica · casi 3:1", minRatio: 2.5 },
-  mobile: { size: "1080 × 1350 px", shape: "Vertical corta · proporción 4:5", minRatio: 2 / 3 },
+  desktop: { size: "2048 × 768 px", shape: "Panorámica · proporción 8:3", minRatio: 2.5 },
+  mobile: { size: "1080 × 1920 px", shape: "Vertical · proporción 9:16", minRatio: 0.55 },
 };
 
 function HeroImageRatioAdvice({ ratio, mobile = false }: { ratio: number | null; mobile?: boolean }) {
@@ -230,7 +230,7 @@ export function AdminHeroManager({ slides }: { slides: Slide[] }) {
   return <div className="admin-config-grid">
     <section className="admin-panel-card admin-hero-list">
       <header><div><span>Hero principal</span><h2>Imágenes publicadas</h2></div><b>{slides.length}</b></header>
-      <p className="admin-hero-format-guide">Medidas para generar las nuevas imágenes: <strong>escritorio {HERO_IMAGE_FORMATS.desktop.size}</strong> y <strong>móvil {HERO_IMAGE_FORMATS.mobile.size}</strong>. Reorganiza logos y productos para cada formato; no estires la imagen anterior. La web conserva la imagen completa y ajusta su altura a la proporción del archivo.</p>
+      <p className="admin-hero-format-guide">Medidas para generar las nuevas imágenes: <strong>escritorio {HERO_IMAGE_FORMATS.desktop.size}</strong> y <strong>móvil {HERO_IMAGE_FORMATS.mobile.size}</strong>. Prepara un encuadre distinto para cada pantalla, con los productos en la mitad inferior y espacio despejado arriba para los textos. La web conserva la foto completa, sin estirarla ni dejar franjas a los lados. Si usas los campos de texto, sube la foto sin letras ni logos incorporados.</p>
       {slides.map((slide, index) => <article key={slide.id}>
         <div className="admin-hero-slide-heading">
           <div className="admin-hero-slide-copy"><small>Diapositiva {index + 1}</small><strong>{slide.title.trim() || "Sin título superpuesto"}</strong><span>{slide.active ? "Visible en la tienda" : "Oculta"}</span></div>
