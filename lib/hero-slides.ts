@@ -1,6 +1,8 @@
 export type HeroSlide = {
   mobileImage: string;
   desktopImage: string;
+  mobileSize?: { width: number; height: number };
+  desktopSize?: { width: number; height: number };
   alt: string;
   title: string;
   description: string;

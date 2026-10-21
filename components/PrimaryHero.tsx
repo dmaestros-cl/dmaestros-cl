@@ -9,8 +9,15 @@ export function PrimaryHero({ slides }: { slides: HeroSlide[] }) {
   const [active, setActive] = useState(0);
   const slide = slides[active] ?? slides[0];
   const common = { alt: slide.alt, sizes: "100vw" };
-  const { props: { srcSet: desktopSrcSet } } = getImageProps({ ...common, src: slide.desktopImage, width: 1672, height: 941, quality: 88 });
-  const { props: { srcSet: mobileSrcSet, ...mobileImageProps } } = getImageProps({ ...common, src: slide.mobileImage, width: 896, height: 1754, quality: 88 });
+  const desktopSize = slide.desktopSize ?? { width: 1672, height: 941 };
+  const mobileSize = slide.mobileSize ?? { width: 896, height: 1754 };
+  const { props: { srcSet: desktopSrcSet } } = getImageProps({ ...common, src: slide.desktopImage, ...desktopSize, quality: 88 });
+  const { props: { srcSet: mobileSrcSet, ...mobileImageProps } } = getImageProps({ ...common, src: slide.mobileImage, ...mobileSize, quality: 88 });
+  const title = slide.title.trim();
+  const description = slide.description.trim();
+  const cta = slide.cta.trim();
+  const hasButton = Boolean(cta && slide.href.trim());
+  const hasCopy = Boolean(title || description || hasButton);
 
   useEffect(() => {
     if (slides.length < 2) return;
@@ -20,19 +27,19 @@ export function PrimaryHero({ slides }: { slides: HeroSlide[] }) {
 
   return (
     <section className="primary-hero" aria-label="Presentación DMaestros">
-      <picture className="primary-hero-picture" key={slide.mobileImage}>
-        <source media="(min-width: 900px)" srcSet={desktopSrcSet} />
-        <source media="(max-width: 899px)" srcSet={mobileSrcSet} />
+      <picture className="primary-hero-picture" key={`${slide.mobileImage}-${slide.desktopImage}`}>
+        <source media="(min-width: 900px)" srcSet={desktopSrcSet} width={desktopSize.width} height={desktopSize.height} />
+        <source media="(max-width: 899px)" srcSet={mobileSrcSet} width={mobileSize.width} height={mobileSize.height} />
         {/* getImageProps provides the optimized src/srcSet used for art direction. */}
         <img {...mobileImageProps} alt={slide.alt} className="primary-hero-image" fetchPriority="high" />
       </picture>
 
-      <div className="primary-hero-copy">
+      {hasCopy && <div className="primary-hero-copy">
         <Image className="primary-hero-mark" src="/images/logo-mark-transparent-v3.png" width={415} height={352} alt="" aria-hidden="true" />
-        <h1>{slide.title}</h1>
-        <p>{slide.description}</p>
-        <Link className="primary-hero-cta" href={slide.href}>{slide.cta}</Link>
-      </div>
+        {title && <h1>{title}</h1>}
+        {description && <p>{description}</p>}
+        {hasButton && <Link className="primary-hero-cta" href={slide.href}>{cta}</Link>}
+      </div>}
 
       {slides.length > 1 && <>
         <button className="primary-hero-arrow is-prev" aria-label="Imagen anterior" onClick={() => setActive((active - 1 + slides.length) % slides.length)}>‹</button>
