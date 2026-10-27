@@ -2,6 +2,7 @@
 
 import { ProductActions } from "@/components/ProductActions";
 import { ProductCardMedia } from "@/components/ProductCardMedia";
+import { ProductCardPrice } from "@/components/ProductCardPrice";
 import type { CatalogProduct } from "@/lib/catalog";
 import { useEffect, useRef, useState } from "react";
 
@@ -95,6 +96,7 @@ export function HomeCategoryShowcase({
                 <ProductCardMedia className="home-product-photo" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} available={product.available} price={product.price} salePrice={product.salePrice} sizes="(max-width: 899px) 50vw, 320px" />
                 <p>{product.sku}</p>
                 <h4>{product.name}</h4>
+                <ProductCardPrice product={product} />
                 <ProductActions
                   product={product}
                   whatsappNumber={whatsappNumber}

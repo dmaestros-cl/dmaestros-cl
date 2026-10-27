@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ProductActions } from "@/components/ProductActions";
 import { ProductCardMedia } from "@/components/ProductCardMedia";
+import { ProductCardPrice } from "@/components/ProductCardPrice";
 import { normalizeSearch, type CatalogProduct } from "@/lib/catalog";
 
 export function ShopCatalog({ initialCategory, initialQuery = "", products, categories, whatsappNumber }: { initialCategory?: string; initialQuery?: string; products: CatalogProduct[]; categories: string[]; whatsappNumber: string }) {
@@ -85,6 +86,7 @@ export function ShopCatalog({ initialCategory, initialQuery = "", products, cate
                 <ProductCardMedia className="shop-product-image" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} available={product.available} price={product.price} salePrice={product.salePrice} sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 260px" />
                 <p>{product.category} · {product.sku}</p>
                 <h2>{product.name}</h2>
+                <ProductCardPrice product={product} />
                 <ProductActions product={product} whatsappNumber={whatsappNumber} compact />
               </article>
             ))}
