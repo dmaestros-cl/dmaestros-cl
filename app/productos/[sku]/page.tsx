@@ -66,7 +66,7 @@ export default async function ProductPage({
             <div className="product-description">{product.description}</div>
           )}
           <strong className="product-detail-price">
-            {product.saleMode === "quote" || product.price == null ? (
+            {product.price == null ? (
               "Precio por cotizar"
             ) : product.salePrice ? (
               <>

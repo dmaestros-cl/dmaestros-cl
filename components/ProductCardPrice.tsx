@@ -3,11 +3,11 @@ import type { CatalogProduct } from "@/lib/catalog";
 export function ProductCardPrice({
   product,
 }: {
-  product: Pick<CatalogProduct, "price" | "salePrice" | "saleMode">;
+  product: Pick<CatalogProduct, "price" | "salePrice">;
 }) {
-  const { price, salePrice, saleMode } = product;
+  const { price, salePrice } = product;
 
-  if (saleMode === "quote" || price == null) {
+  if (price == null) {
     return <div className="product-card-price is-quote">Precio por cotizar</div>;
   }
 
