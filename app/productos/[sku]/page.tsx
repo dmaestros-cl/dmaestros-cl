@@ -56,7 +56,7 @@ export default async function ProductPage({
     <div className="shop-shell">
       <SiteHeader />
       <main className="product-detail-page">
-        <ProductGallery name={product.name} primaryImage={product.image} images={gallery} youtubeUrl={product.youtubeUrl} price={product.price} salePrice={product.salePrice} available={product.available} />
+        <ProductGallery name={product.name} primaryImage={product.image} images={gallery} youtubeUrl={product.youtubeUrl} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} available={product.available} />
         <section className="product-detail-copy">
           <p>
             {product.category} · {product.sku}
@@ -65,10 +65,8 @@ export default async function ProductPage({
           {product.description && (
             <div className="product-description">{product.description}</div>
           )}
-          <strong className="product-detail-price">
-            {product.price == null ? (
-              "Precio por cotizar"
-            ) : product.salePrice ? (
+          {product.saleMode === "buy" && product.price != null && <strong className="product-detail-price">
+            {product.salePrice != null && product.salePrice >= 0 && product.salePrice < product.price ? (
               <>
                 <del>${product.price.toLocaleString("es-CL")}</del> $
                 {product.salePrice.toLocaleString("es-CL")}
@@ -76,7 +74,7 @@ export default async function ProductPage({
             ) : (
               `$${product.price.toLocaleString("es-CL")}`
             )}
-          </strong>
+          </strong>}
           <ProductActions
             product={product}
             whatsappNumber={settings?.whatsapp_number ?? ""}

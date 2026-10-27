@@ -22,8 +22,10 @@ export function ProductActions({ product, whatsappNumber, compact = false }: { p
 
   return <div className={`product-commerce-actions${compact ? " is-compact" : ""}`}>
     <Link className="product-details-link" href={details}>Ver detalles</Link>
-    {product.saleMode === "quote" || product.available === false ? (
+    {product.saleMode === "quote" ? (
       <a className="product-primary-action is-quote" href={normalizedNumber ? whatsapp : details}>Cotizar</a>
+    ) : product.available === false ? (
+      <button className="product-primary-action" type="button" disabled>Agotado</button>
     ) : <>
       <button className="product-cart-icon" type="button" aria-label={`Agregar ${product.name} al carrito`} title="Agregar al carrito" onClick={() => addToCart(product)}><CartIcon /><span className="cart-add-plus" aria-hidden="true">+</span></button>
       <button className="product-primary-action" type="button" onClick={() => { addToCart(product); router.push("/carrito"); }}>Comprar</button>

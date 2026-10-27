@@ -93,7 +93,7 @@ export function HomeCategoryShowcase({
                 className="home-product-card"
                 key={`${category.title}-${product.sku}`}
               >
-                <ProductCardMedia className="home-product-photo" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} available={product.available} price={product.price} salePrice={product.salePrice} sizes="(max-width: 899px) 50vw, 320px" />
+                <ProductCardMedia className="home-product-photo" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} available={product.available} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} sizes="(max-width: 899px) 50vw, 320px" />
                 <p>{product.sku}</p>
                 <h4>{product.name}</h4>
                 <ProductCardPrice product={product} />

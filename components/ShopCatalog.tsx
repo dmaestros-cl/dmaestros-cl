@@ -83,7 +83,7 @@ export function ShopCatalog({ initialCategory, initialQuery = "", products, cate
           <div className="shop-product-grid">
             {visible.map((product) => (
               <article className="shop-product-card" key={product.sku}>
-                <ProductCardMedia className="shop-product-image" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} available={product.available} price={product.price} salePrice={product.salePrice} sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 260px" />
+                <ProductCardMedia className="shop-product-image" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} available={product.available} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 260px" />
                 <p>{product.category} · {product.sku}</p>
                 <h2>{product.name}</h2>
                 <ProductCardPrice product={product} />
