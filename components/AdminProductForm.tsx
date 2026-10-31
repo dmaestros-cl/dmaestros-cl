@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { optimizeImage } from "@/lib/image-optimization";
 import { createClient } from "@/lib/supabase/client";
 import { AdminSuccessDialog } from "@/components/AdminSuccessDialog";
+import { validateProductPricing } from "@/lib/product-pricing";
 
 type Category = { id: string; name: string };
 
@@ -19,6 +20,15 @@ export function AdminProductForm({ categories }: { categories: Category[] }) {
   async function createProduct(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const priceValue = String(form.get("price") || "").trim();
+    const salePriceValue = String(form.get("sale_price") || "").trim();
+    const pricing = {
+      price: priceValue ? Number(priceValue) : null,
+      sale_price: salePriceValue ? Number(salePriceValue) : null,
+      sale_mode: String(form.get("sale_mode") || "quote"),
+    };
+    const priceError = validateProductPricing(pricing);
+    if (priceError) return setMessage(priceError);
     const files = (form.getAll("images") as File[]).filter((file) => file.size);
     if (!files.length) return setMessage("Selecciona al menos una imagen.");
     if (files.length > 10) return setMessage("Puedes cargar un máximo de 10 imágenes.");
@@ -30,23 +40,18 @@ export function AdminProductForm({ categories }: { categories: Category[] }) {
     setMessage("Optimizando imagen…");
 
     try {
-      const priceValue = String(form.get("price") || "").trim();
-      const salePriceValue = String(form.get("sale_price") || "").trim();
       const sku = String(form.get("sku") || "").trim();
       const slug = String(form.get("slug") || "").trim();
       const stock = Number(form.get("stock") || 0);
-      const saleMode = String(form.get("sale_mode") || "quote");
       const { data: product, error } = await supabase.from("products").insert({
         ...(sku ? { sku } : {}),
         ...(slug ? { slug } : {}),
         name: String(form.get("name")).trim(),
         description: String(form.get("description") || "").trim(),
         category_id: String(form.get("category_id")) || null,
-        price: priceValue ? Number(priceValue) : null,
-        sale_price: salePriceValue ? Number(salePriceValue) : null,
+        ...pricing,
         stock,
-        sale_mode: saleMode,
-        ...(saleMode === "buy" ? { available: stock > 0 } : {}),
+        ...(pricing.sale_mode === "buy" ? { available: stock > 0 } : {}),
         youtube_url: String(form.get("youtube_url") || "").trim() || null,
       }).select("id,sku,slug").single();
       if (error) throw error;

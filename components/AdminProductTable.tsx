@@ -10,6 +10,7 @@ import {
 } from "@/components/AdminProductGallery";
 import { AdminDeleteDialog } from "@/components/AdminDeleteDialog";
 import { AdminSuccessDialog } from "@/components/AdminSuccessDialog";
+import { validateProductPricing } from "@/lib/product-pricing";
 
 export type AdminProductRow = {
   id: string;
@@ -140,9 +141,14 @@ export function AdminProductTable({
       );
       return false;
     }
+    const updatedProduct = { ...product, ...values };
+    const priceError = validateProductPricing(updatedProduct);
+    if (priceError) {
+      setMessage(priceError);
+      return false;
+    }
     setBusyId(product.id);
     setMessage("");
-    const updatedProduct = { ...product, ...values };
     const updates = {
       ...values,
       ...(updatedProduct.sale_mode === "buy"
@@ -174,13 +180,6 @@ export function AdminProductTable({
     const salePrice = String(form.get("sale_price") || "").trim();
     const normalPrice = price ? Number(price) : null;
     const offerPrice = salePrice ? Number(salePrice) : null;
-    if (
-      offerPrice != null &&
-      (normalPrice == null || offerPrice >= normalPrice)
-    ) {
-      setMessage("El precio oferta debe ser menor que el precio normal.");
-      return;
-    }
     const categoryId = String(form.get("category_id") || "") || null;
     const saved = await updateProduct(editing, {
       name: String(form.get("name")).trim(),
@@ -233,10 +232,6 @@ export function AdminProductTable({
   }
 
   function toggleSaleMode(product: AdminProductRow) {
-    if (product.sale_mode === "quote" && product.price == null) {
-      setMessage("Agrega un precio antes de habilitar la compra online.");
-      return;
-    }
     updateProduct(product, {
       sale_mode: product.sale_mode === "buy" ? "quote" : "buy",
     });
@@ -488,8 +483,9 @@ export function AdminProductTable({
                 <input
                   name="price"
                   type="number"
-                  min="0"
+                  min={editing.sale_mode === "buy" ? "1" : "0"}
                   step="1"
+                  required={editing.sale_mode === "buy"}
                   defaultValue={editing.price ?? ""}
                 />
               </label>
