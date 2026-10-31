@@ -640,6 +640,16 @@ body:has(.admin-shell) .site-footer,body:has(.admin-login-page) .site-footer { d
 @media (max-width:650px) { .floating-whatsapp { right:20px; bottom:20px; width:57px; height:57px; }.floating-whatsapp svg { width:31px; height:31px; }.floating-whatsapp-label { display:none; } }
 @media (prefers-reduced-motion:reduce) { .floating-whatsapp,.floating-whatsapp-wave { animation:none; } }
 .admin-stock.is-low { color:#c72f2f; font-weight:900; }
+.admin-modal textarea { display:block; width:100%; min-height:140px; resize:vertical; padding:13px 14px; border:1px solid #ccd7dc; border-radius:8px; color:#172b36; background:#fff; font-family:inherit; font-size:14px; font-weight:400; line-height:1.55; }
+.admin-modal textarea:focus-visible { outline:2px solid var(--navy); outline-offset:2px; }
+.admin-modal label > small { color:#657984; font-size:11px; font-weight:400; line-height:1.5; }
+.product-specifications { margin:24px 0; padding-top:20px; border-top:1px solid #dfe5e8; }
+.product-specifications h2 { margin:0 0 12px; color:var(--navy); font-size:18px; line-height:1.35; }
+.product-description { white-space:pre-line; overflow-wrap:anywhere; }
+.product-photo-details { position:absolute; z-index:2; bottom:12px; left:12px; display:inline-flex; align-items:center; gap:6px; min-height:38px; padding:0 12px; border:1px solid #ffffff99; border-radius:99px; color:#fff; background:#082f48e8; box-shadow:0 6px 18px #07172240; font-size:11px; font-weight:800; }
+.product-card-media > a:focus-visible { outline:3px solid var(--navy); outline-offset:-3px; }
+.product-card-media:has(.product-video-toggle) .product-photo-details { bottom:58px; }
+@media (max-width:700px) { .admin-modal textarea { font-size:16px; } }
 .admin-sort-button { display:inline-flex; align-items:center; gap:5px; padding:0; border:0; color:inherit; background:transparent; font:inherit; font-weight:inherit; text-transform:inherit; cursor:pointer; }.admin-sort-button span { color:#9aa7ae; font-size:11px; line-height:1; }.admin-sort-button:hover,.admin-sort-button.is-active { color:#123b55; }.admin-sort-button.is-active span { color:#19724b; }
 .admin-modal select { width:100%; padding:13px 14px; border:1px solid #ccd7dc; border-radius:8px; outline:0; color:#172b36; background:#fff; font:14px/1.35 inherit; }.admin-modal select:focus { border-color:var(--navy); box-shadow:0 0 0 3px #07355316; }
 .admin-success-dialog { display:grid; justify-items:center; width:min(420px,calc(100vw - 32px)); padding:34px 30px 30px; border:1px solid #d4e9dc; border-radius:16px; background:#fff; box-shadow:0 30px 90px #061b294d; text-align:center; }.admin-success-icon { display:grid; place-items:center; width:58px; height:58px; margin-bottom:15px; border-radius:50%; color:#fff; background:#238255; box-shadow:0 9px 24px #23825535; }.admin-success-icon svg { width:30px; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:2.2; }.admin-success-dialog .admin-eyebrow { margin:0 0 6px; color:#39765a; }.admin-success-dialog h2 { margin:0; color:#17394d; font-size:26px; }.admin-success-dialog p { max-width:320px; margin:12px 0 24px; color:#647680; font-size:12px; line-height:1.55; }.admin-success-dialog .admin-primary-button { min-width:160px; background:#174f39; }

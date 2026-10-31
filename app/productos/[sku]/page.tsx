@@ -62,8 +62,11 @@ export default async function ProductPage({
             {product.category} · {product.sku}
           </p>
           <h1>{product.name}</h1>
-          {product.description && (
-            <div className="product-description">{product.description}</div>
+          {product.description?.trim() && (
+            <section className="product-specifications" aria-labelledby="product-specifications-heading">
+              <h2 id="product-specifications-heading">Descripción y especificaciones</h2>
+              <div className="product-description">{product.description}</div>
+            </section>
           )}
           {product.saleMode === "buy" && product.price != null && <strong className="product-detail-price">
             {product.salePrice != null && product.salePrice >= 0 && product.salePrice < product.price ? (

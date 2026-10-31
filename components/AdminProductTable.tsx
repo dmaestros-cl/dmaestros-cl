@@ -15,6 +15,7 @@ export type AdminProductRow = {
   id: string;
   sku: string;
   name: string;
+  description: string;
   image_url: string;
   price: number | null;
   sale_price: number | null;
@@ -176,6 +177,7 @@ export function AdminProductTable({
     const categoryId = String(form.get("category_id") || "") || null;
     const saved = await updateProduct(editing, {
       name: String(form.get("name")).trim(),
+      description: String(form.get("description") || "").trim(),
       sku: String(form.get("sku")).trim(),
       slug: String(form.get("slug")).trim(),
       price: normalPrice,
@@ -188,6 +190,7 @@ export function AdminProductTable({
     const categoryName = categories.find((category) => category.id === categoryId)?.name ?? "Sin categoría";
     setRows((current) => current.map((row) => row.id === editing.id ? { ...row, category_name: categoryName } : row));
     setEditing(null);
+    setSuccess({ title: "Producto actualizado", message: "La información y las especificaciones del producto se guardaron correctamente." });
   }
 
   async function removeProduct(product: AdminProductRow) {
@@ -438,6 +441,17 @@ export function AdminProductTable({
             <label>
               Nombre
               <input name="name" defaultValue={editing.name} required />
+            </label>
+            <label>
+              Descripción y especificaciones
+              <textarea
+                name="description"
+                rows={6}
+                defaultValue={editing.description ?? ""}
+                placeholder={"Material\nMedidas\nTerminación y otras características"}
+                aria-describedby="edit-product-description-help"
+              />
+              <small id="edit-product-description-help">Incluye medidas, materiales y características. Se mostrará al abrir “Ver detalles”.</small>
             </label>
             <div className="admin-form-row">
               <label>
