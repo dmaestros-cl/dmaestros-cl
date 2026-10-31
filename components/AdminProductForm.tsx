@@ -34,6 +34,8 @@ export function AdminProductForm({ categories }: { categories: Category[] }) {
       const salePriceValue = String(form.get("sale_price") || "").trim();
       const sku = String(form.get("sku") || "").trim();
       const slug = String(form.get("slug") || "").trim();
+      const stock = Number(form.get("stock") || 0);
+      const saleMode = String(form.get("sale_mode") || "quote");
       const { data: product, error } = await supabase.from("products").insert({
         ...(sku ? { sku } : {}),
         ...(slug ? { slug } : {}),
@@ -42,8 +44,9 @@ export function AdminProductForm({ categories }: { categories: Category[] }) {
         category_id: String(form.get("category_id")) || null,
         price: priceValue ? Number(priceValue) : null,
         sale_price: salePriceValue ? Number(salePriceValue) : null,
-        stock: Number(form.get("stock") || 0),
-        sale_mode: String(form.get("sale_mode") || "quote"),
+        stock,
+        sale_mode: saleMode,
+        ...(saleMode === "buy" ? { available: stock > 0 } : {}),
         youtube_url: String(form.get("youtube_url") || "").trim() || null,
       }).select("id,sku,slug").single();
       if (error) throw error;

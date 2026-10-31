@@ -142,9 +142,16 @@ export function AdminProductTable({
     }
     setBusyId(product.id);
     setMessage("");
+    const updatedProduct = { ...product, ...values };
+    const updates = {
+      ...values,
+      ...(updatedProduct.sale_mode === "buy"
+        ? { available: updatedProduct.stock > 0 }
+        : {}),
+    };
     const { error } = await supabase
       .from("products")
-      .update(values)
+      .update(updates)
       .eq("id", product.id);
     setBusyId(null);
     if (error) {
@@ -153,7 +160,7 @@ export function AdminProductTable({
     }
     setRows((current) =>
       current.map((row) =>
-        row.id === product.id ? { ...row, ...values } : row,
+        row.id === product.id ? { ...row, ...updates } : row,
       ),
     );
     return true;
@@ -336,19 +343,24 @@ export function AdminProductTable({
                         <button
                           type="button"
                           title={
-                            product.available
+                            product.sale_mode === "buy"
+                              ? "Editar stock"
+                              : product.available
                               ? "Marcar agotado"
                               : "Marcar disponible"
                           }
                           aria-label={
-                            product.available
+                            product.sale_mode === "buy"
+                              ? `Editar stock de ${product.name}`
+                              : product.available
                               ? `Marcar ${product.name} como agotado`
                               : `Marcar ${product.name} como disponible`
                           }
-                          className={product.available ? "is-on" : ""}
+                          className={(product.sale_mode === "buy" ? product.stock > 0 : product.available) ? "is-on" : ""}
                           disabled={busy}
-                          onClick={() =>
-                            updateProduct(product, {
+                          onClick={() => product.sale_mode === "buy"
+                            ? setEditing(product)
+                            : updateProduct(product, {
                               available: !product.available,
                             })
                           }
@@ -501,7 +513,9 @@ export function AdminProductTable({
                 min="0"
                 step="1"
                 defaultValue={editing.stock}
+                aria-describedby="edit-product-stock-help"
               />
+              <small id="edit-product-stock-help">Con compra online, el producto se puede comprar mientras tenga stock. Con 0 unidades se muestra agotado.</small>
             </label>
             <label>
               Video de YouTube
