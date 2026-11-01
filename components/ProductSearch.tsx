@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { normalizeSearch, type CatalogProduct } from "@/lib/catalog";
 import { createClient } from "@/lib/supabase/client";
@@ -14,13 +16,14 @@ export function ProductSearch({
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
+  const router = useRouter();
   const suggestionsId = useId();
   const normalizedQuery = normalizeSearch(query);
   useEffect(() => {
     const supabase = createClient();
     supabase
       .from("products")
-      .select("sku,name,image_url,price,stock,available,categories!inner(name,active)")
+      .select("sku,slug,name,image_url,price,stock,available,categories!inner(name,active)")
       .eq("active", true)
       .eq("categories.active", true)
       .then(({ data }) => {
@@ -31,6 +34,7 @@ export function ProductSearch({
               : product.categories;
             return {
               sku: product.sku,
+              slug: product.slug,
               name: product.name,
               image: product.image_url,
               price: product.price == null ? undefined : Number(product.price),
@@ -54,12 +58,14 @@ export function ProductSearch({
   }, [normalizedQuery, products]);
 
   const showSuggestions = focused && Boolean(normalizedQuery);
-  const resultHref = (name: string) =>
-    `/tienda?buscar=${encodeURIComponent(name)}#catalogo`;
+  const resultHref = (product: CatalogProduct) =>
+    `/productos/${encodeURIComponent(product.slug || product.sku)}`;
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (matches[0]) window.location.assign(resultHref(matches[0].name));
+    if (!query.trim()) return;
+    setFocused(false);
+    router.push(matches[0] ? resultHref(matches[0]) : `/tienda?buscar=${encodeURIComponent(query.trim())}`);
   }
 
   return (
@@ -69,13 +75,21 @@ export function ProductSearch({
       }
       onSubmit={search}
       onFocus={() => setFocused(true)}
-      onBlur={() => window.setTimeout(() => setFocused(false), 120)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") setFocused(false);
+      }}
       role="search"
     >
       <input
         name="buscar"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setFocused(true);
+        }}
         placeholder="Buscar..."
         role="combobox"
         aria-label="Buscar productos"
@@ -91,8 +105,9 @@ export function ProductSearch({
         <div className="search-suggestions" id={suggestionsId} role="listbox">
           {matches.length ? (
             matches.map((product) => (
-              <a
-                href={resultHref(product.name)}
+              <Link
+                href={resultHref(product)}
+                onNavigate={() => setFocused(false)}
                 className="search-suggestion"
                 role="option"
                 aria-selected="false"
@@ -111,7 +126,7 @@ export function ProductSearch({
                 <span className="search-suggestion-arrow" aria-hidden="true">
                   →
                 </span>
-              </a>
+              </Link>
             ))
           ) : (
             <p className="search-empty" role="status">
