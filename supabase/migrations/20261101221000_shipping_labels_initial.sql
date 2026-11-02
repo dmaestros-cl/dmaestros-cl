@@ -6,8 +6,10 @@ set shipping_rm_only = name in ('Muebles', 'Muebles a Pedido', 'Comedores', 'Esp
 where active;
 
 update public.products as p
-set shipping_scope = case when c.shipping_rm_only then 'rm' else 'chile' end
-from public.categories as c
-where p.category_id = c.id and c.active and p.shipping_scope is null;
+set shipping_scope = case when exists (
+  select 1 from public.categories as c
+  where c.id = p.category_id and c.shipping_rm_only
+) then 'rm' else 'chile' end
+where p.shipping_scope is null;
 
 commit;

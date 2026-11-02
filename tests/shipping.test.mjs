@@ -22,6 +22,26 @@ test("product coverage overrides its category, while unconfigured products inher
   }
 });
 
+test("initial coverage follows the requested categories and includes products without a category", async (t) => {
+  const db = new PGlite();
+  t.after(() => db.close());
+  await db.exec(`
+    create table public.categories (id integer primary key, name text, active boolean, shipping_rm_only boolean);
+    create table public.products (sku text primary key, category_id integer, shipping_scope text);
+    insert into public.categories values
+      (1,'Muebles',true,false),(2,'Muebles a Pedido',true,false),(3,'Comedores',true,false),
+      (4,'Espejos',true,false),(5,'Coffe / Bar',true,false),(6,'Mascotas',true,false),
+      (7,'Cajas para corchos',true,false),(8,'Destapadores de cerveza',true,false);
+    insert into public.products select id::text,id,null from public.categories;
+    insert into public.products values ('uncategorized',null,null),('custom',1,'chile');
+  `);
+  await db.exec(await migration("20261101221000_shipping_labels_initial"));
+  const { rows } = await db.query("select sku,shipping_scope from public.products order by sku");
+  assert.deepEqual(Object.fromEntries(rows.map(row => [row.sku, row.shipping_scope])), {
+    1: "rm", 2: "rm", 3: "rm", 4: "rm", 5: "rm", 6: "chile", 7: "chile", 8: "chile", custom: "chile", uncategorized: "chile",
+  });
+});
+
 test("shipping policy validates configuration and uses an inclusive products-only threshold", () => {
   assert.deepEqual(parseShippingSettings(disabled), disabled);
   assert.deepEqual(parseShippingSettings({ mode: "threshold", minimum_subtotal: "2000" }), threshold);
