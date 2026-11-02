@@ -17,7 +17,7 @@ export default async function ProductsPage() {
     supabase
       .from("products")
       .select(
-        "id,sku,slug,name,description,image_url,price,sale_price,stock,available,active,sale_mode,youtube_url,shipping_scope,shipping_price,category_id,categories(name),product_images(id,asset_id,public_url,alt,sort_order,is_primary)",
+        "id,sku,slug,name,description,image_url,price,sale_price,stock,available,active,sale_mode,youtube_url,shipping_scope,shipping_price,shipping_automatic,package_weight_kg,package_length_cm,package_width_cm,package_height_cm,category_id,categories(name),product_images(id,asset_id,public_url,alt,sort_order,is_primary)",
       )
       .order("created_at", { ascending: false }),
     supabase
@@ -47,6 +47,11 @@ export default async function ProductsPage() {
       youtube_url: product.youtube_url,
       shipping_scope: parseProductShippingScope(product.shipping_scope),
       shipping_price: product.shipping_price == null ? null : Number(product.shipping_price),
+      shipping_automatic: product.shipping_automatic,
+      package_weight_kg: product.package_weight_kg == null ? null : Number(product.package_weight_kg),
+      package_length_cm: product.package_length_cm == null ? null : Number(product.package_length_cm),
+      package_width_cm: product.package_width_cm == null ? null : Number(product.package_width_cm),
+      package_height_cm: product.package_height_cm == null ? null : Number(product.package_height_cm),
       category_id: product.category_id,
       product_images: [...product.product_images].sort(
         (a, b) => a.sort_order - b.sort_order,

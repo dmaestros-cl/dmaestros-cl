@@ -13,9 +13,10 @@ import { AdminSuccessDialog } from "@/components/AdminSuccessDialog";
 import { validateProductPricing } from "@/lib/product-pricing";
 import { parseProductShippingScope, type ProductShippingScope } from "@/lib/product-shipping";
 import { AdminProductShippingField } from "@/components/AdminProductShippingField";
+import { packageFromForm, type ProductPackage } from "@/lib/blue-shipping";
 import { parseProductShippingPrice } from "@/lib/product-shipping-price";
 
-export type AdminProductRow = {
+export type AdminProductRow = ProductPackage & {
   id: string;
   sku: string;
   name: string;
@@ -187,7 +188,8 @@ export function AdminProductTable({
     const offerPrice = salePrice ? Number(salePrice) : null;
     const categoryId = String(form.get("category_id") || "") || null;
     let shippingPrice: number | null;
-    try { shippingPrice = parseProductShippingPrice(form.get("shipping_price")); }
+    let parcel: ProductPackage;
+    try { shippingPrice = parseProductShippingPrice(form.get("shipping_price")); parcel = packageFromForm(form); }
     catch (error) { return setMessage(error instanceof Error ? error.message : "Revisa el precio de despacho."); }
     const saved = await updateProduct(editing, {
       name: String(form.get("name")).trim(),
@@ -201,6 +203,7 @@ export function AdminProductTable({
       category_id: categoryId,
       shipping_scope: parseProductShippingScope(form.get("shipping_scope")),
       shipping_price: shippingPrice,
+        ...parcel,
     });
     if (!saved) return;
     const categoryName = categories.find((category) => category.id === categoryId)?.name ?? "Sin categoría";
@@ -523,7 +526,7 @@ export function AdminProductTable({
               />
               <small id="edit-product-stock-help">Con compra online, el producto se puede comprar mientras tenga stock. Con 0 unidades se muestra agotado.</small>
             </label>
-            <AdminProductShippingField value={editing.shipping_scope} price={editing.shipping_price} />
+            <AdminProductShippingField value={editing.shipping_scope} price={editing.shipping_price} parcel={editing} />
             <label>
               Video de YouTube
               <input name="youtube_url" type="url" defaultValue={editing.youtube_url ?? ""} placeholder="https://www.youtube.com/watch?v=..." />

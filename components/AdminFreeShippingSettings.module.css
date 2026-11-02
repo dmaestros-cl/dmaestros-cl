@@ -23,6 +23,8 @@
 .option input:focus-visible { outline: 2px solid #245f85; outline-offset: 3px; }
 .minimum { grid-column: 1 / -1; display: grid; gap: 8px; color: #17394d; font-size: 14px; font-weight: 700; }
 .minimum input { width: min(100%, 320px); min-height: 46px; padding: 10px 14px; border: 1px solid #b9ccd6; border-radius: 8px; color: #17394d; background: #fff; font: inherit; }
+.minimum select { width: min(100%, 480px); min-height: 46px; padding: 10px 14px; border: 1px solid #b9ccd6; border-radius: 8px; color: #17394d; background: #fff; font: inherit; }
+.note + form { margin-top: 20px; margin-bottom: 20px; }
 .note { margin: 0; color: #617784; font-size: 12px; line-height: 1.7; }
 .ruleInputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .ruleInputs .minimum { grid-column: auto; }

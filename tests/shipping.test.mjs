@@ -110,7 +110,7 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await db.exec(base.match(new RegExp(`create policy "${policy}"[^;]+;`))[0]);
   }
   await db.exec("alter table public.products add column sale_price numeric(12,2); alter table public.categories add column shipping_rm_only boolean not null default false;");
-  for (const name of ["20261010232000_sales_and_store_settings", "20261010233000_checkout_orders", "20261011000000_commune_shipping", "20261011060000_product_manual_availability", "20261013150000_webpay_plus", "20261014210000_free_shipping", "20261101220000_product_shipping_scope", "20261102150000_product_shipping_price", "20261102160000_custom_shipping_rules"]) {
+  for (const name of ["20261010232000_sales_and_store_settings", "20261010233000_checkout_orders", "20261011000000_commune_shipping", "20261011060000_product_manual_availability", "20261013150000_webpay_plus", "20261014210000_free_shipping", "20261101220000_product_shipping_scope", "20261102150000_product_shipping_price", "20261102160000_custom_shipping_rules", "20261102210000_blue_express_shipping", "20261102211000_blue_pyme_tariff"]) {
     await db.exec(await migration(name));
   }
   await db.exec(`
@@ -121,6 +121,7 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     insert into public.shipping_regions (code,name) values ('CL-RM','Metropolitana'),('CL-VS','Valparaíso');
     insert into public.shipping_rates (commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max)
       values ('13101','CL-RM','Santiago',250,1,3);
+    update public.shipping_rates set blue_zone='santiago' where commune_code='13101';
   `);
   const setRole = async (role, uid = "") => {
     await db.exec("reset role");
@@ -206,6 +207,7 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await db.exec(`
       insert into public.shipping_rates (commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max)
         values ('05101','CL-VS','Valparaíso',350,2,4);
+      update public.shipping_rates set blue_zone='centro' where commune_code='05101';
       update public.products set shipping_scope='rm' where sku='A';
     `);
     const pickup = await create({ region: "CL-VS", commune: "05101", total: 2000 });
@@ -312,6 +314,57 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     }
     await setRole("authenticated", adminId);
     for (const update of ["quantity_discount_min_units=0", "quantity_discount_min_units=4951", "quantity_discount_percent=0", "quantity_discount_percent=101", "calculation_mode='invalid'"]) await assert.rejects(db.exec(`update public.shipping_settings set ${update}`), /check constraint/);
+  });
+  await t.test("Blue Emprendedores tariffs, measurements, admin overrides and checkout agree", async () => {
+    await setRole("authenticated", adminId);
+    await assert.rejects(db.exec("update public.products set shipping_automatic=true where sku='A'"), /check constraint/);
+    await db.exec("update public.products set shipping_automatic=true,package_weight_kg=1,package_length_cm=30,package_width_cm=30,package_height_cm=30 where sku='A'");
+    await assert.rejects(create({ total: 20400,region: 'CL-VS',commune:'05101' }), /origen/);
+    await setRole("authenticated", adminId);
+    await db.exec("update public.shipping_settings set origin_commune_code='13101'");
+    const automatic = await create({ total:20400,region:'CL-VS',commune:'05101' });
+    assert.equal(Number((await order(automatic)).shipping_cost),18400);
+    assert.equal((await create({total:12800})).amount,12800);
+    await assert.rejects(create({total:2350,region:'CL-VS',commune:'05101'}),/precio o despacho/);
+    await setRole("authenticated",adminId);
+    await db.exec("update public.blue_pyme_tariffs set l=8000 where region_code='central'");
+    assert.equal((await create({total:18000,region:'CL-VS',commune:'05101'})).amount,18000);
+    assert.equal((await create({id:automatic.id,total:20400,region:'CL-VS',commune:'05101'})).created,false);
+    await db.exec("update public.shipping_rates set blue_l=1200 where commune_code='05101'");
+    assert.equal((await create({total:4400,region:'CL-VS',commune:'05101'})).amount,4400);
+    await db.exec("update public.shipping_settings set quantity_discount_enabled=true,quantity_discount_min_units=2,quantity_discount_percent=50");
+    assert.equal((await create({total:3200,region:'CL-VS',commune:'05101'})).amount,3200);
+    await db.exec("update public.shipping_settings set calculation_mode='highest'");
+    assert.equal((await create({total:2600,region:'CL-VS',commune:'05101'})).amount,2600);
+    await db.exec("update public.shipping_settings set quantity_discount_enabled=false,calculation_mode='per_unit'; update public.shipping_rates set blue_l=0 where commune_code='05101'");
+    assert.equal((await create({total:2000,region:'CL-VS',commune:'05101'})).amount,2000);
+    await db.exec("update public.shipping_rates set blue_enabled=false where commune_code='05101'");
+    await assert.rejects(create({total:2000,region:'CL-VS',commune:'05101'}),/coordinar/);
+    await db.exec("update public.products set package_length_cm=71 where sku='A'");
+    await assert.rejects(create({total:2000}),/70 cm/);
+    await db.exec("update public.products set shipping_scope='rm' where sku='A'");
+    assert.equal((await order(await create({total:2000,region:'CL-VS',commune:''}))).shipping_commune,'Retiro en taller');
+    await db.exec("update public.products set shipping_scope=null,package_length_cm=10,package_width_cm=10,package_height_cm=10,package_weight_kg=20.001 where sku='A'");
+    await assert.rejects(create({total:2000}),/20 kg/);
+    await db.exec("update public.products set package_weight_kg=1 where sku='A'; update public.shipping_rates set blue_zone='pendiente',blue_enabled=true where commune_code='05101'");
+    await assert.rejects(create({total:2000,region:'CL-VS',commune:'05101'}),/confirmación/);
+    await db.exec("update public.shipping_rates set blue_zone='centro' where commune_code='05101'");
+    await db.exec("update public.products set shipping_automatic=false where sku='A'; update public.shipping_rates set blue_enabled=true,blue_l=null where commune_code='05101'");
+    assert.equal((await create()).amount,2250);
+  });
+  await t.test("Blue tariffs and origin remain admin-only", async () => {
+    for (const [role,uid] of [["anon",""],["authenticated",customerId]]) {
+      await setRole(role,uid);
+      assert.equal((await db.query("select count(*) from public.blue_pyme_tariffs")).rows[0].count,3);
+      if (role==='anon') await assert.rejects(db.exec("update public.blue_pyme_tariffs set s=0"),/permission denied/);
+      else {
+        assert.equal((await db.query("update public.blue_pyme_tariffs set s=0 returning *")).rows.length,0);
+        assert.equal((await db.query("update public.shipping_settings set origin_commune_code=null returning *")).rows.length,0);
+      }
+      await assert.rejects(db.query("select public.blue_product_shipping_price(null,null)"),/permission denied/);
+    }
+    await setRole("authenticated",adminId);
+    await assert.rejects(db.exec("update public.blue_pyme_tariffs set s=-1"),/check constraint/);
   });
   await t.test("anonymous and customer sessions can read but cannot change promotions or call checkout RPC", async () => {
     await setRole("anon");

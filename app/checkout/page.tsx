@@ -9,17 +9,30 @@ import { productShipsOnlyToRM } from "@/lib/product-shipping";
 import { parseProductShippingPrice, productShippingQuote, parseShippingRules, SHIPPING_RULES_COLUMNS, type ShippingRules } from "@/lib/product-shipping-price";
 import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal, SHIPPING_SETTINGS_COLUMNS, type ShippingSettings } from "@/lib/shipping-policy";
 
-type ShippingProduct = { sku: string; rmOnly: boolean; shippingPrice: number | null };
+import { BLUE_PRODUCT_COLUMNS, BLUE_RATE_COLUMNS, blueUnitPrice, parseProductPackage, type ProductPackage, type BlueCommune, type BlueConfiguration, type BlueTariff, type BlueZone } from "@/lib/blue-shipping";
+
+type ShippingProduct = ProductPackage & { sku: string; rmOnly: boolean; shippingPrice: number | null };
 
 async function loadShippingProducts(skus: string[]): Promise<ShippingProduct[]> {
   const { data, error } = await createClient().from("products")
-    .select("sku,shipping_scope,shipping_price,categories!inner(shipping_rm_only)").in("sku", skus);
+    .select(`sku,shipping_scope,shipping_price,${BLUE_PRODUCT_COLUMNS},categories!inner(shipping_rm_only)`).in("sku", skus);
   if (error || data?.length !== skus.length) throw new Error("No pudimos verificar el despacho de los productos.");
   return data.map((product) => ({
+    ...parseProductPackage(product),
     sku: product.sku,
     shippingPrice: parseProductShippingPrice(product.shipping_price),
     rmOnly: productShipsOnlyToRM(product.shipping_scope, (Array.isArray(product.categories) ? product.categories[0] : product.categories)?.shipping_rm_only),
   }));
+}
+
+async function loadBlueConfiguration(origin: string | null): Promise<BlueConfiguration> {
+  const supabase = createClient();
+  const [tariffs, originResult] = await Promise.all([
+    supabase.from("blue_pyme_tariffs").select("region_code,xs,s,m,l"),
+    origin ? supabase.from("shipping_rates").select("region_code,blue_zone").eq("commune_code", origin).single() : Promise.resolve({ data: null, error: null }),
+  ]);
+  if (tariffs.error || originResult.error) throw new Error("No pudimos verificar el tarifario de despacho.");
+  return { originRegion: originResult.data?.region_code ?? null, originZone: originResult.data?.blue_zone as BlueZone ?? null, tariffs: tariffs.data as BlueTariff[] };
 }
 
 export default function CheckoutPage() {
@@ -30,14 +43,14 @@ export default function CheckoutPage() {
   const [paymentConfig, setPaymentConfig] = useState<{ enabled: boolean } | null>(null);
   const [regions, setRegions] = useState<{ code: string; name: string }[]>([]);
   const [rates, setRates] = useState<
-    {
+    (BlueCommune & {
       commune_code: string;
       region_code: string;
       commune_name: string;
       price: number;
       estimated_days_min: number;
       estimated_days_max: number;
-    }[]
+    })[]
   >([]);
   const [regionCode, setRegionCode] = useState("");
   const [communeCode, setCommuneCode] = useState("");
@@ -45,6 +58,7 @@ export default function CheckoutPage() {
   const [coverageState, setCoverageState] = useState("loading");
   const [shippingSettings, setShippingSettings] = useState<ShippingSettings | null>(null);
   const [shippingRules, setShippingRules] = useState<ShippingRules | null>(null);
+  const [blueConfig, setBlueConfig] = useState<BlueConfiguration | null>(null);
   const [shippingError, setShippingError] = useState("");
   const subtotal = items.reduce(
     (sum, item) =>
@@ -61,17 +75,22 @@ export default function CheckoutPage() {
     regionCode !== "CL-RM" &&
     shippingProducts.some((product) => product.rmOnly),
   );
-  const coverageReady = shippingRules !== null && coverageState === JSON.stringify(items.map((item) => item.product.sku));
-  function quoteShipping(products: ShippingProduct[], communePrice: number, rules = shippingRules) {
-    if (!rules) throw new Error("No pudimos verificar las reglas de despacho.");
-    return productShippingQuote(items.map((item) => {
-      const product = products.find((entry) => entry.sku === item.product.sku);
-      if (!product) throw new Error("No pudimos verificar el despacho de los productos.");
-      return { shippingPrice: product.shippingPrice, quantity: item.quantity };
-    }), communePrice, rules);
+  const coverageReady = shippingRules !== null && blueConfig !== null && coverageState === JSON.stringify(items.map((item) => item.product.sku));
+  function quoteShipping(products: ShippingProduct[], rate: BlueCommune & { price: number }, rules = shippingRules, config = blueConfig) {
+    try {
+      if (!rules || !config) throw new Error("No pudimos verificar las reglas de despacho.");
+      const quote = productShippingQuote(items.map((item) => {
+        const product = products.find((entry) => entry.sku === item.product.sku);
+        if (!product) throw new Error("No pudimos verificar el despacho de los productos.");
+        return { shippingPrice: product.shipping_automatic ? blueUnitPrice(product, rate, config) : product.shippingPrice, quantity: item.quantity };
+      }), rate.price, rules);
+      return { ...quote, error: "" };
+    } catch (error) {
+      return { base: 0, discount: 0, total: 0, error: error instanceof Error ? error.message : "Contacta a DMaestros para cotizar este despacho." };
+    }
   }
   const freeShipping = !requiresPickup && shippingSettings !== null && qualifiesForFreeShipping(subtotal, shippingSettings);
-  const shippingQuote = coverageReady && selectedRate ? quoteShipping(shippingProducts, selectedRate.price) : { base: 0, discount: 0, total: 0 };
+  const shippingQuote = coverageReady && selectedRate && !requiresPickup ? quoteShipping(shippingProducts, selectedRate) : { base: 0, discount: 0, total: 0, error: "" };
   const shippingCost = requiresPickup || freeShipping ? 0 : shippingQuote.total;
   const shippingDiscount = requiresPickup || freeShipping ? 0 : shippingQuote.discount;
   const total = subtotal + shippingCost;
@@ -88,14 +107,17 @@ export default function CheckoutPage() {
       supabase
         .from("shipping_rates")
         .select(
-          "commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max",
+          `commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max,${BLUE_RATE_COLUMNS}`,
         )
         .eq("active", true)
         .order("commune_name"),
-      supabase.from("shipping_settings").select(`${SHIPPING_SETTINGS_COLUMNS},${SHIPPING_RULES_COLUMNS}`).eq("id", true).single(),
-    ]).then(([regionResult, rateResult, settingsResult]) => {
+      supabase.from("shipping_settings").select(`${SHIPPING_SETTINGS_COLUMNS},${SHIPPING_RULES_COLUMNS},origin_commune_code`).eq("id", true).single(),
+    ]).then(async ([regionResult, rateResult, settingsResult]) => {
       if (cancelled) return;
       if (regionResult.error || rateResult.error || settingsResult.error) throw new Error("shipping_unavailable");
+      const configuration = await loadBlueConfiguration(settingsResult.data.origin_commune_code);
+      if (cancelled) return;
+      setBlueConfig(configuration);
       setShippingSettings(parseShippingSettings(settingsResult.data));
       setShippingRules(parseShippingRules(settingsResult.data));
       const nextRegions = regionResult.data ?? [];
@@ -134,7 +156,7 @@ export default function CheckoutPage() {
   }, [regionCode]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!items.length || submitting.current || !paymentConfig?.enabled || !shippingSettings || shippingError || !coverageReady) return;
+    if (!items.length || submitting.current || !paymentConfig?.enabled || !shippingSettings || shippingError || !coverageReady || Boolean(shippingQuote.error)) return;
     submitting.current = true;
     setBusy(true);
     setMessage("");
@@ -148,17 +170,28 @@ export default function CheckoutPage() {
       // Recheck product shipping and promotions before creating a payment. The database independently
       // validates the final amount, including changes made during this request.
       const [{ data: latest, error: settingsError }, latestProducts] = await Promise.all([
-        createClient().from("shipping_settings").select(`${SHIPPING_SETTINGS_COLUMNS},${SHIPPING_RULES_COLUMNS}`).eq("id", true).single(),
+        createClient().from("shipping_settings").select(`${SHIPPING_SETTINGS_COLUMNS},${SHIPPING_RULES_COLUMNS},origin_commune_code`).eq("id", true).single(),
         loadShippingProducts(items.map((item) => item.product.sku)),
       ]);
       if (settingsError) throw new Error("No pudimos verificar el envío. Intenta nuevamente; no se inició ningún cobro.");
+      const currentConfig = await loadBlueConfiguration(latest.origin_commune_code);
+      let currentRate = selectedRate;
+      if (communeCode) {
+        const fresh = await createClient().from("shipping_rates").select(`commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max,${BLUE_RATE_COLUMNS}`).eq("commune_code", communeCode).eq("region_code", regionCode).eq("active", true).single();
+        if (fresh.error) throw new Error("El despacho a esta comuna cambió. Actualiza la página antes de pagar.");
+        currentRate = { ...fresh.data, price: Number(fresh.data.price) };
+        setRates(rows => rows.map(row => row.commune_code === communeCode ? currentRate! : row));
+      }
       const currentSettings = parseShippingSettings(latest);
       const currentRules = parseShippingRules(latest);
       const currentPickup = regionCode !== "CL-RM" && latestProducts.some((product) => product.rmOnly);
-      const currentCost = currentPickup ? 0 : shippingCostForSubtotal(quoteShipping(latestProducts, Number(selectedRate?.price ?? 0), currentRules).total, subtotal, currentSettings);
+      const currentQuote = currentPickup || !currentRate ? null : quoteShipping(latestProducts, currentRate, currentRules, currentConfig);
+      setBlueConfig(currentConfig);
       setShippingSettings(currentSettings);
       setShippingRules(currentRules);
       setShippingProducts(latestProducts);
+      if (!currentPickup && (!currentQuote || currentQuote.error)) throw new Error(currentQuote?.error || "Selecciona una comuna con despacho disponible.");
+      const currentCost = currentPickup ? 0 : shippingCostForSubtotal(currentQuote!.total, subtotal, currentSettings);
       if (currentCost !== shippingCost || currentPickup !== requiresPickup) throw new Error("Las condiciones de envío cambiaron. Revisa el nuevo total y vuelve a pulsar Pagar.");
       const payload = {
         customer: { name: String(form.get("name")), email: String(form.get("email")), phone: String(form.get("phone")), address: String(form.get("address") ?? "") },
@@ -253,9 +286,10 @@ export default function CheckoutPage() {
                         : "Selecciona una comuna"}
                     </option>
                     {communeRates.map((rate) => {
-                      const cost = coverageReady && !requiresPickup ? (freeShipping ? 0 : quoteShipping(shippingProducts, rate.price).total) : null;
+                      const quote = coverageReady && !requiresPickup ? quoteShipping(shippingProducts, rate) : null;
+                      const cost = quote && !quote.error ? (freeShipping ? 0 : quote.total) : null;
                       return <option key={rate.commune_code} value={rate.commune_code}>
-                        {rate.commune_name}{cost === null ? "" : cost === 0 ? " · Gratis" : ` · $${cost.toLocaleString("es-CL")}`}
+                        {rate.commune_name}{quote?.error ? " · Consultar despacho" : cost === null ? "" : cost === 0 ? " · Gratis" : ` · $${cost.toLocaleString("es-CL")}`}
                       </option>;
                     })}
                   </select>
@@ -284,6 +318,8 @@ export default function CheckoutPage() {
                       solo en la Región Metropolitana.
                     </span>
                   </div>
+                ) : shippingQuote.error ? (
+                  <div className="checkout-delivery-note" role="alert"><strong>Despacho por coordinar</strong><span>{shippingQuote.error}</span><Link href="/informacion/contacto">Consultar despacho</Link></div>
                 ) : selectedRate && coverageReady ? (
                   <div className="checkout-delivery-note">
                     <strong>
@@ -297,7 +333,7 @@ export default function CheckoutPage() {
                 ) : null}
                 <button
                   disabled={
-                    busy || !paymentConfig?.enabled || !shippingSettings || Boolean(shippingError) || !coverageReady || !items.length || (!selectedRate && !requiresPickup)
+                    busy || !paymentConfig?.enabled || !shippingSettings || Boolean(shippingError) || Boolean(shippingQuote.error) || !coverageReady || !items.length || (!selectedRate && !requiresPickup)
                   }
                 >
                   {busy ? "Conectando con Webpay…" : "Pagar con Webpay Plus"}
@@ -318,7 +354,7 @@ export default function CheckoutPage() {
                       ? "Verificando…"
                       : requiresPickup
                       ? "Retiro en taller"
-                      : selectedRate
+                      : shippingQuote.error ? "Por cotizar" : selectedRate
                         ? shippingCost + shippingDiscount === 0 ? "Gratis" : `$${(shippingCost + shippingDiscount).toLocaleString("es-CL")}`
                         : "Por seleccionar"}
                   </strong>
@@ -329,7 +365,7 @@ export default function CheckoutPage() {
                 </div>}
                 <div className="checkout-total">
                   <span>Total</span>
-                  <strong>${total.toLocaleString("es-CL")}</strong>
+                  <strong>{shippingQuote.error ? "Por confirmar" : `$${total.toLocaleString("es-CL")}`}</strong>
                 </div>
                 <p>
                   {requiresPickup
@@ -340,8 +376,8 @@ export default function CheckoutPage() {
                         ? `Agrega $${Math.max(0, shippingSettings.minimum_subtotal! - subtotal).toLocaleString("es-CL")} en productos para obtener envío gratis.`
                         : shippingRules?.quantity_discount_enabled
                           ? `${shippingRules.quantity_discount_percent}% de descuento en despacho desde ${shippingRules.quantity_discount_min_units} unidades.`
-                        : shippingProducts.some((product) => product.shippingPrice !== null)
-                          ? "Despacho calculado según los productos, sus cantidades y el destino."
+                        : shippingProducts.some((product) => product.shipping_automatic || product.shippingPrice !== null)
+                          ? "Despacho calculado según el embalaje de los productos, sus cantidades y el destino."
                           : "Tarifa calculada según la comuna seleccionada."}
                 </p>
               </aside>
