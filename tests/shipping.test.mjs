@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal } from "../lib/shipping-policy.ts";
 import { productShipsOnlyToRM } from "../lib/product-shipping.ts";
-import { parseProductShippingPrice, productShippingCost } from "../lib/product-shipping-price.ts";
+import { parseProductShippingPrice, productShippingCost, productShippingQuote, parseShippingRules, DEFAULT_SHIPPING_RULES } from "../lib/product-shipping-price.ts";
 
 const disabled = { mode: "disabled", minimum_subtotal: null };
 const all = { mode: "all", minimum_subtotal: null };
@@ -34,6 +34,21 @@ test("product coverage overrides its category, while unconfigured products inher
     assert.equal(productShipsOnlyToRM(null, category), category);
     assert.equal(productShipsOnlyToRM(undefined, category), category);
   }
+});
+
+test("custom rules use inclusive unit thresholds, configurable percentages, highest fee and peso rounding", () => {
+  const discount = { ...DEFAULT_SHIPPING_RULES, quantity_discount_enabled: true };
+  assert.deepEqual(parseShippingRules(DEFAULT_SHIPPING_RULES), DEFAULT_SHIPPING_RULES);
+  for (const value of [null, {}, { ...discount, calculation_mode: "invalid" }, { ...discount, quantity_discount_enabled: "true" }, { ...discount, quantity_discount_min_units: 0 }, { ...discount, quantity_discount_percent: 101 }, { ...discount, quantity_discount_percent: 1.5 }]) assert.throws(() => parseShippingRules(value));
+  assert.equal(productShippingCost([{ shippingPrice: 5000, quantity: 2 }], 3000, discount), 10000);
+  assert.equal(productShippingCost([{ shippingPrice: 5000, quantity: 3 }], 3000, discount), 7500);
+  assert.equal(productShippingCost([{ shippingPrice: 5000, quantity: 3 }], 3000, { ...discount, quantity_discount_min_units: 4 }), 15000);
+  assert.equal(productShippingCost([{ shippingPrice: 5000, quantity: 4 }], 3000, { ...discount, quantity_discount_min_units: 4 }), 10000);
+  const mixed = [{ shippingPrice: 5001, quantity: 1 }, { shippingPrice: 10000, quantity: 2 }];
+  assert.deepEqual(productShippingQuote(mixed, 3000, discount), { base: 25001, discount: 12500, total: 12501 });
+  assert.equal(productShippingCost(mixed, 3000, { ...discount, calculation_mode: "highest" }), 5000);
+  assert.equal(productShippingCost([{ shippingPrice: null, quantity: 4 }], 3000, discount), 1500);
+  assert.equal(productShippingCost(mixed, 3000, { ...discount, quantity_discount_percent: 100 }), 0);
 });
 
 test("initial coverage follows the requested categories and includes products without a category", async (t) => {
@@ -95,7 +110,7 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await db.exec(base.match(new RegExp(`create policy "${policy}"[^;]+;`))[0]);
   }
   await db.exec("alter table public.products add column sale_price numeric(12,2); alter table public.categories add column shipping_rm_only boolean not null default false;");
-  for (const name of ["20261010232000_sales_and_store_settings", "20261010233000_checkout_orders", "20261011000000_commune_shipping", "20261011060000_product_manual_availability", "20261013150000_webpay_plus", "20261014210000_free_shipping", "20261101220000_product_shipping_scope", "20261102150000_product_shipping_price"]) {
+  for (const name of ["20261010232000_sales_and_store_settings", "20261010233000_checkout_orders", "20261011000000_commune_shipping", "20261011060000_product_manual_availability", "20261013150000_webpay_plus", "20261014210000_free_shipping", "20261101220000_product_shipping_scope", "20261102150000_product_shipping_price", "20261102160000_custom_shipping_rules"]) {
     await db.exec(await migration(name));
   }
   await db.exec(`
@@ -259,6 +274,44 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     assert.equal(Number((await order(pickup)).shipping_cost), 0);
     await db.exec("update public.products set shipping_price=null,shipping_scope=null where sku='A'");
     assert.equal((await create()).amount, 2250);
+  });
+  await t.test("admin-configured quantity rules control authoritative checkout and reject stale totals", async () => {
+    await setRole("authenticated", adminId);
+    assert.deepEqual(parseShippingRules((await db.query("select * from public.shipping_settings")).rows[0]), DEFAULT_SHIPPING_RULES);
+    const saved = (await db.query("update public.shipping_settings set quantity_discount_enabled=true,quantity_discount_min_units=3,quantity_discount_percent=50 returning *")).rows[0];
+    assert.equal(parseShippingRules(saved).quantity_discount_enabled, true);
+    await db.exec("update public.products set shipping_price=500 where sku='A'");
+    assert.equal((await create({ quantity: 2, total: 3000 })).amount, 3000);
+    const payment = await create({ quantity: 3, total: 3750 });
+    assert.equal(Number((await order(payment)).shipping_cost), 750);
+    await db.exec("update public.shipping_settings set quantity_discount_min_units=4");
+    assert.equal((await create({ id: payment.id, quantity: 3, total: 3750 })).created, false);
+    const before = (await db.query("select count(*) from public.orders")).rows[0].count;
+    await assert.rejects(create({ quantity: 3, total: 3750 }), /precio o despacho/);
+    assert.equal((await db.query("select count(*) from public.orders")).rows[0].count, before);
+    assert.equal((await create({ quantity: 3, total: 4500 })).amount, 4500);
+    assert.equal((await create({ quantity: 4, total: 5000 })).amount, 5000);
+    await db.exec("update public.shipping_settings set calculation_mode='highest'");
+    assert.equal((await create({ quantity: 4, total: 4250 })).amount, 4250);
+    await db.exec("update public.shipping_settings set calculation_mode='per_unit',quantity_discount_min_units=3; update public.products set shipping_price=5001 where sku='A'");
+    assert.equal(Number((await order(await create({ quantity: 3, total: 10502 }))).shipping_cost), 7502);
+    await save(all);
+    assert.equal((await create({ quantity: 3, total: 3000 })).amount, 3000);
+    await save(disabled);
+    await db.exec("update public.products set shipping_scope='rm' where sku='A'");
+    assert.equal((await order(await create({ quantity: 3, region: 'CL-VS', commune: '', total: 3000 }))).shipping_commune, "Retiro en taller");
+    await db.exec("update public.products set shipping_price=null,shipping_scope=null where sku='A'; update public.shipping_settings set quantity_discount_enabled=false");
+    assert.equal((await create()).amount, 2250);
+  });
+  await t.test("shipping rules remain admin-only and invalid rules are rejected by the database", async () => {
+    for (const [role, uid] of [["anon", ""], ["authenticated", customerId]]) {
+      await setRole(role, uid);
+      assert.equal(parseShippingRules((await db.query("select * from public.shipping_settings")).rows[0]).quantity_discount_enabled, false);
+      if (role === "anon") await assert.rejects(db.query("update public.shipping_settings set quantity_discount_enabled=true"), /permission denied/);
+      else assert.equal((await db.query("update public.shipping_settings set quantity_discount_enabled=true returning *")).rows.length, 0);
+    }
+    await setRole("authenticated", adminId);
+    for (const update of ["quantity_discount_min_units=0", "quantity_discount_min_units=4951", "quantity_discount_percent=0", "quantity_discount_percent=101", "calculation_mode='invalid'"]) await assert.rejects(db.exec(`update public.shipping_settings set ${update}`), /check constraint/);
   });
   await t.test("anonymous and customer sessions can read but cannot change promotions or call checkout RPC", async () => {
     await setRole("anon");

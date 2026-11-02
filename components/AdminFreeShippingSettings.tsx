@@ -17,7 +17,7 @@ export function AdminFreeShippingSettings({ initialSettings }: { initialSettings
   const draftMode = enabled ? mode : "disabled";
   const draftMinimum = enabled && mode === "threshold" ? Number(minimum) : saved?.minimum_subtotal ?? null;
   const dirty = saved && (draftMode !== saved.mode || draftMinimum !== saved.minimum_subtotal);
-  const activeDescription = saved?.mode === "all" ? "Envío gratis en todas las compras" : saved?.mode === "threshold" ? `Envío gratis desde $${saved.minimum_subtotal!.toLocaleString("es-CL")}` : "Se aplican las tarifas por comuna";
+  const activeDescription = saved?.mode === "all" ? "Envío gratis en todas las compras" : saved?.mode === "threshold" ? `Envío gratis desde $${saved.minimum_subtotal!.toLocaleString("es-CL")}` : "Se aplican las tarifas y reglas de despacho";
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,7 +40,7 @@ export function AdminFreeShippingSettings({ initialSettings }: { initialSettings
       if (saveError) throw saveError;
       const updated = parseShippingSettings(data);
       setSaved(updated);
-      setMessage(updated.mode === "disabled" ? "Envío gratis desactivado. Se aplicarán las tarifas por comuna." : "Configuración guardada. El envío gratis se aplicará automáticamente en el checkout.");
+      setMessage(updated.mode === "disabled" ? "Envío gratis desactivado. Se aplicarán las tarifas y reglas de despacho." : "Configuración guardada. El envío gratis se aplicará automáticamente en el checkout.");
     } catch {
       setError("No se pudo guardar. Tus cambios no se aplicaron; revisa tu sesión de administrador e inténtalo nuevamente.");
     } finally {

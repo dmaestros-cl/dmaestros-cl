@@ -3,6 +3,8 @@ import { AdminShippingManager, type ShippingRate, type ShippingRegion } from "@/
 import { requireAdmin } from "@/lib/admin";
 import Link from "next/link";
 import { AdminFreeShippingSettings } from "@/components/AdminFreeShippingSettings";
+import { AdminShippingRules } from "@/components/AdminShippingRules";
+import { parseShippingRules, SHIPPING_RULES_COLUMNS, type ShippingRules } from "@/lib/product-shipping-price";
 import { parseShippingSettings, SHIPPING_SETTINGS_COLUMNS, type ShippingSettings } from "@/lib/shipping-policy";
 
 export default async function ShippingPage() {
@@ -10,14 +12,17 @@ export default async function ShippingPage() {
   const [{ data: regions }, { data: rates }, settingsResult] = await Promise.all([
     supabase.from("shipping_regions").select("code,name,sort_order").order("sort_order"),
     supabase.from("shipping_rates").select("commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max,active").order("commune_name"),
-    supabase.from("shipping_settings").select(SHIPPING_SETTINGS_COLUMNS).eq("id", true).single(),
+    supabase.from("shipping_settings").select(`${SHIPPING_SETTINGS_COLUMNS},${SHIPPING_RULES_COLUMNS}`).eq("id", true).single(),
   ]);
   let settings: ShippingSettings | null = null;
+  let rules: ShippingRules | null = null;
   if (!settingsResult.error) {
     try { settings = parseShippingSettings(settingsResult.data); } catch { /* Show the unavailable state, never a fake saved setting. */ }
+    try { rules = parseShippingRules(settingsResult.data); } catch { /* Show the unavailable state. */ }
   }
   return <>
     <AdminPageHeader eyebrow="Logística" title="Envíos" description="Tarifas generales, plazos y comunas disponibles. Puedes definir un precio propio de despacho en la ficha de cada producto." action={<Link className="admin-secondary-button" href="/admin/productos">Tarifas por producto</Link>} />
+    <AdminShippingRules initialRules={rules} />
     <AdminFreeShippingSettings initialSettings={settings} />
     <AdminShippingManager regions={(regions ?? []) as ShippingRegion[]} initialRates={(rates ?? []).map((rate) => ({ ...rate, price: Number(rate.price) })) as ShippingRate[]} />
   </>;

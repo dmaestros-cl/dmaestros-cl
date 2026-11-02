@@ -14,8 +14,8 @@ export function AdminProductShippingField({ value, price }: { value?: ProductShi
     <label>
       Precio de despacho por unidad (CLP)
       <input name="shipping_price" type="number" min="0" max={MAX_PRODUCT_SHIPPING_PRICE} step="1" defaultValue={price ?? ""} placeholder="Usar tarifa general por comuna" />
-      <small>Precio fijo para los destinos habilitados. Se suma por cada unidad comprada. Escribe 0 para despacho gratis o deja vacío para usar la tarifa general por comuna.</small>
-      <small>Si el carrito mezcla productos con precio propio y productos sin configurar, se suman los precios propios y una sola tarifa general. Las promociones de envío gratis siguen aplicándose.</small>
+      <small>Precio fijo para los destinos habilitados. Escribe 0 para despacho gratis o deja vacío para usar la tarifa general por comuna.</small>
+      <small>La forma de cobro y los descuentos por cantidad se configuran en el panel Envíos → Reglas del carrito.</small>
     </label>
   </>;
 }
