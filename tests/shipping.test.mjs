@@ -115,6 +115,7 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
   }
   await db.exec(`
     grant usage on schema public,auth to anon,authenticated,service_role;
+    grant select on public.shipping_rates to anon,authenticated;
     insert into public.categories (id,name,slug) values ('11111111-1111-4111-8111-111111111111','Colección','coleccion');
     insert into public.products (sku,name,category_id,price,sale_price,stock,active,available,sale_mode)
       values ('A','Producto','11111111-1111-4111-8111-111111111111',1200,1000,10,true,true,'buy');
@@ -141,6 +142,21 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     return (await db.query("select public.create_webpay_order($1,'hash',$2,$3,$4,$5,$6,$7,'integration','597055555532') as payment", [args.id, randomUUID(), customer, args.items ?? [{ sku: "A", quantity: args.quantity }], args.region, args.commune, args.total])).rows[0].payment;
   };
   const order = async (payment) => (await db.query("select shipping_cost,total,shipping_commune from public.orders where id=$1", [payment.order_id])).rows[0];
+
+  await db.exec(await migration("20261102212000_public_shipping_origin"));
+  await t.test("disabled delivery does not hide the origin needed for other destinations", async () => {
+    await setRole("service_role");
+    await db.exec("update public.shipping_settings set origin_commune_code='13101'; update public.shipping_rates set active=false where commune_code='13101'");
+    await setRole("anon");
+    assert.equal((await db.query("select region_code,blue_zone from public.shipping_rates where commune_code='13101'")).rows.length, 1);
+    assert.equal((await db.query("select commune_code from public.shipping_rates where active")).rows.length, 0);
+    await setRole("service_role");
+    await db.exec("update public.shipping_settings set origin_commune_code=null");
+    await setRole("anon");
+    assert.equal((await db.query("select commune_code from public.shipping_rates")).rows.length, 0);
+    await setRole("service_role");
+    await db.exec("update public.shipping_rates set active=true where commune_code='13101'");
+  });
 
   await t.test("default off charges the original tariff; admin updates persist", async () => {
     await setRole("anon");
