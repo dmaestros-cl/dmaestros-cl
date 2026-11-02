@@ -3,6 +3,7 @@ import { ProductActions } from "@/components/ProductActions";
 import { ProductGallery } from "@/components/ProductGallery";
 import { SiteHeader } from "@/components/SiteHeader";
 import { createClient } from "@/lib/supabase/server";
+import { parseProductShippingScope } from "@/lib/product-shipping";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
 
 export default async function ProductPage({
@@ -16,7 +17,7 @@ export default async function ProductPage({
     supabase
       .from("products")
       .select(
-        "sku,slug,name,description,image_url,price,sale_price,stock,available,sale_mode,youtube_url,categories(name),product_images(public_url,sort_order)",
+        "sku,slug,name,description,image_url,price,sale_price,stock,available,sale_mode,youtube_url,shipping_scope,categories(name),product_images(public_url,sort_order)",
       )
       .or(
         `slug.eq.${decodeURIComponent(sku)},sku.eq.${decodeURIComponent(sku)}`,
@@ -49,6 +50,7 @@ export default async function ProductPage({
     available: data.available,
     saleMode: data.sale_mode,
     youtubeUrl: data.youtube_url,
+    shippingScope: parseProductShippingScope(data.shipping_scope),
     category: category?.name ?? "Sin categoría",
   } as const;
   const videoEmbedUrl = getYouTubeEmbedUrl(product.youtubeUrl);
@@ -56,7 +58,7 @@ export default async function ProductPage({
     <div className="shop-shell">
       <SiteHeader />
       <main className="product-detail-page">
-        <ProductGallery name={product.name} primaryImage={product.image} images={gallery} youtubeUrl={product.youtubeUrl} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} available={product.available} />
+        <ProductGallery name={product.name} primaryImage={product.image} images={gallery} youtubeUrl={product.youtubeUrl} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} available={product.available} shippingScope={product.shippingScope} />
         <section className="product-detail-copy">
           <p>
             {product.category} · {product.sku}

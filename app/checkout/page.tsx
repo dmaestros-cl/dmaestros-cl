@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useCart } from "@/components/CartProvider";
 import { createClient } from "@/lib/supabase/client";
+import { productShipsOnlyToRM } from "@/lib/product-shipping";
 import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal, SHIPPING_SETTINGS_COLUMNS, type ShippingSettings } from "@/lib/shipping-policy";
 
 export default function CheckoutPage() {
@@ -27,6 +28,7 @@ export default function CheckoutPage() {
   const [regionCode, setRegionCode] = useState("");
   const [communeCode, setCommuneCode] = useState("");
   const [restrictedSkus, setRestrictedSkus] = useState<string[]>([]);
+  const [coverageState, setCoverageState] = useState("loading");
   const [shippingSettings, setShippingSettings] = useState<ShippingSettings | null>(null);
   const [shippingError, setShippingError] = useState("");
   const subtotal = items.reduce(
@@ -87,24 +89,34 @@ export default function CheckoutPage() {
   useEffect(() => {
     const skus = items.map((item) => item.product.sku);
     if (!skus.length) return;
+    let cancelled = false;
     createClient()
       .from("products")
-      .select("sku,categories!inner(shipping_rm_only)")
+      .select("sku,shipping_scope,categories!inner(shipping_rm_only)")
       .in("sku", skus)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || data?.length !== skus.length) {
+          setCoverageState("error");
+          return;
+        }
         setRestrictedSkus(
           (data ?? [])
             .filter(
               (product) =>
-                (Array.isArray(product.categories)
+                productShipsOnlyToRM(product.shipping_scope, (Array.isArray(product.categories)
                   ? product.categories[0]
                   : product.categories
-                )?.shipping_rm_only,
+                )?.shipping_rm_only),
             )
             .map((product) => product.sku),
         );
+        setCoverageState(JSON.stringify(skus));
       });
+    return () => { cancelled = true; };
   }, [items]);
+
+  const coverageReady = coverageState === JSON.stringify(items.map((item) => item.product.sku));
 
   useEffect(() => {
     const timer = window.setTimeout(() => setCommuneCode(""), 0);
@@ -112,7 +124,7 @@ export default function CheckoutPage() {
   }, [regionCode]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!items.length || submitting.current || !paymentConfig?.enabled || !shippingSettings || shippingError) return;
+    if (!items.length || submitting.current || !paymentConfig?.enabled || !shippingSettings || shippingError || !coverageReady) return;
     submitting.current = true;
     setBusy(true);
     setMessage("");
@@ -181,6 +193,7 @@ export default function CheckoutPage() {
             </header>
             {paymentConfig && !paymentConfig.enabled && <div className="checkout-availability-note" role="status">El pago en línea aún no está disponible. <Link href="/informacion/contacto">Contacta a DMaestros</Link> para coordinar tu compra.</div>}
             {shippingError && <div className="checkout-availability-note" role="alert">{shippingError}</div>}
+            {coverageState === "error" && <div className="checkout-availability-note" role="alert">No pudimos verificar la cobertura de despacho de los productos. Actualiza la página antes de pagar.</div>}
             <div className="checkout-layout">
               <form className="checkout-form" onSubmit={submit}>
                 <label>
@@ -267,7 +280,7 @@ export default function CheckoutPage() {
                 ) : null}
                 <button
                   disabled={
-                    busy || !paymentConfig?.enabled || !shippingSettings || Boolean(shippingError) || !items.length || (!selectedRate && !requiresPickup)
+                    busy || !paymentConfig?.enabled || !shippingSettings || Boolean(shippingError) || !coverageReady || !items.length || (!selectedRate && !requiresPickup)
                   }
                 >
                   {busy ? "Conectando con Webpay…" : "Pagar con Webpay Plus"}

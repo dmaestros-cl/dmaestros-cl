@@ -3,10 +3,12 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
+import { ProductShippingBadge } from "@/components/ProductShippingBadge";
+import type { ProductShippingScope } from "@/lib/product-shipping";
 
 type Selection = { type: "image"; src: string; index: number } | { type: "video" };
 
-export function ProductGallery({ name, primaryImage, images, youtubeUrl, price, salePrice, available }: { name: string; primaryImage: string; images: string[]; youtubeUrl?: string | null; price?: number; salePrice?: number; available: boolean }) {
+export function ProductGallery({ name, primaryImage, images, youtubeUrl, price, salePrice, available, shippingScope }: { name: string; primaryImage: string; images: string[]; youtubeUrl?: string | null; price?: number; salePrice?: number; available: boolean; shippingScope?: ProductShippingScope | null }) {
   const gallery = useMemo(() => Array.from(new Set([primaryImage, ...images].filter(Boolean))), [primaryImage, images]);
   const [selection, setSelection] = useState<Selection>({ type: "image", src: primaryImage, index: 0 });
   const videoEmbedUrl = getYouTubeEmbedUrl(youtubeUrl, true);
@@ -24,6 +26,7 @@ export function ProductGallery({ name, primaryImage, images, youtubeUrl, price, 
       {selection.type === "video" && videoEmbedUrl ? <iframe src={videoEmbedUrl} title={`Video de ${name}`} allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /> : selection.type === "image" && <Image src={selection.src} alt={`${name}, imagen ${selection.index + 1}`} fill sizes="(max-width: 850px) 100vw, 50vw" priority={selection.index === 0} />}
       {selection.type === "image" && salePrice && price && <span className="product-sale-badge is-large">−{Math.round((1 - salePrice / price) * 100)}%</span>}
       {selection.type === "image" && !available && <span className="product-sold-overlay is-large">Agotado</span>}
+      {selection.type === "image" && <ProductShippingBadge scope={shippingScope} />}
       {itemCount > 1 && <><button className="product-gallery-arrow is-prev" type="button" onClick={() => selectAt(currentIndex - 1)} aria-label="Ver elemento anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><button className="product-gallery-arrow is-next" type="button" onClick={() => selectAt(currentIndex + 1)} aria-label="Ver elemento siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></button></>}
     </div>
     {(gallery.length > 1 || videoEmbedUrl) && <div className="product-detail-thumbs" aria-label="Galería del producto">

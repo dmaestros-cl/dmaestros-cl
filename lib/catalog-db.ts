@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { parseProductShippingScope } from "@/lib/product-shipping";
 import type { CatalogProduct } from "@/lib/catalog";
 
 export async function getPublicCatalog() {
@@ -11,7 +12,7 @@ export async function getPublicCatalog() {
     supabase
       .from("products")
       .select(
-        "sku,slug,name,description,image_url,price,sale_price,stock,available,sale_mode,youtube_url,categories!inner(name,active),product_images(public_url,sort_order)",
+        "sku,slug,name,description,image_url,price,sale_price,stock,available,sale_mode,youtube_url,shipping_scope,categories!inner(name,active),product_images(public_url,sort_order)",
       )
       .eq("active", true)
       .eq("categories.active", true)
@@ -41,6 +42,7 @@ export async function getPublicCatalog() {
       stock: product.stock,
       available: product.available,
       youtubeUrl: product.youtube_url ?? undefined,
+      shippingScope: parseProductShippingScope(product.shipping_scope),
       images: [...product.product_images]
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((image) => image.public_url),

@@ -1,3 +1,5 @@
+import type { ProductShippingScope } from "@/lib/product-shipping";
+
 export type CatalogProduct = {
   sku: string;
   name: string;
@@ -12,6 +14,7 @@ export type CatalogProduct = {
   available?: boolean;
   images?: string[];
   youtubeUrl?: string;
+  shippingScope?: ProductShippingScope | null;
 };
 
 export const products: readonly CatalogProduct[] = [

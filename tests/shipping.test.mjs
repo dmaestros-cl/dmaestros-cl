@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal } from "../lib/shipping-policy.ts";
+import { productShipsOnlyToRM } from "../lib/product-shipping.ts";
 
 const disabled = { mode: "disabled", minimum_subtotal: null };
 const all = { mode: "all", minimum_subtotal: null };
@@ -11,6 +12,15 @@ const threshold = { mode: "threshold", minimum_subtotal: 2000 };
 const migration = (name) => readFile(new URL(`../supabase/migrations/${name}.sql`, import.meta.url), "utf8");
 const adminId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const customerId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+test("product coverage overrides its category, while unconfigured products inherit it", () => {
+  for (const category of [true, false]) {
+    assert.equal(productShipsOnlyToRM("rm", category), true);
+    assert.equal(productShipsOnlyToRM("chile", category), false);
+    assert.equal(productShipsOnlyToRM(null, category), category);
+    assert.equal(productShipsOnlyToRM(undefined, category), category);
+  }
+});
 
 test("shipping policy validates configuration and uses an inclusive products-only threshold", () => {
   assert.deepEqual(parseShippingSettings(disabled), disabled);
@@ -46,8 +56,12 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     assert.ok(definition, table);
     await db.exec(definition[0]);
   }
+  await db.exec("alter table public.products enable row level security; grant select,insert,update,delete on public.products to anon,authenticated;");
+  for (const policy of ["Public reads active products", "Admin manages products"]) {
+    await db.exec(base.match(new RegExp(`create policy "${policy}"[^;]+;`))[0]);
+  }
   await db.exec("alter table public.products add column sale_price numeric(12,2); alter table public.categories add column shipping_rm_only boolean not null default false;");
-  for (const name of ["20261010232000_sales_and_store_settings", "20261010233000_checkout_orders", "20261011000000_commune_shipping", "20261011060000_product_manual_availability", "20261013150000_webpay_plus", "20261014210000_free_shipping"]) {
+  for (const name of ["20261010232000_sales_and_store_settings", "20261010233000_checkout_orders", "20261011000000_commune_shipping", "20261011060000_product_manual_availability", "20261013150000_webpay_plus", "20261014210000_free_shipping", "20261101220000_product_shipping_scope"]) {
     await db.exec(await migration(name));
   }
   await db.exec(`
@@ -74,7 +88,7 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await setRole("service_role");
     const args = { id: randomUUID(), region: "CL-RM", commune: "13101", total: 2250, quantity: 2, ...overrides };
     const customer = { name: "Cliente", email: "cliente@example.com", phone: "+56912345678", address: "Dirección 123" };
-    return (await db.query("select public.create_webpay_order($1,'hash',$2,$3,$4,$5,$6,$7,'integration','597055555532') as payment", [args.id, randomUUID(), customer, [{ sku: "A", quantity: args.quantity }], args.region, args.commune, args.total])).rows[0].payment;
+    return (await db.query("select public.create_webpay_order($1,'hash',$2,$3,$4,$5,$6,$7,'integration','597055555532') as payment", [args.id, randomUUID(), customer, args.items ?? [{ sku: "A", quantity: args.quantity }], args.region, args.commune, args.total])).rows[0].payment;
   };
   const order = async (payment) => (await db.query("select shipping_cost,total,shipping_commune from public.orders where id=$1", [payment.order_id])).rows[0];
 
@@ -117,6 +131,19 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     assert.equal((await order(pickup)).shipping_commune, "Retiro en taller");
     await db.exec("update public.categories set shipping_rm_only=false");
   });
+  await t.test("administrators can save product coverage, but shoppers cannot change it", async () => {
+    await setRole("authenticated", adminId);
+    assert.equal((await db.query("update public.products set shipping_scope='rm' where sku='A' returning shipping_scope")).rows[0].shipping_scope, "rm");
+    for (const [role, uid] of [["anon", ""], ["authenticated", customerId]]) {
+      await setRole(role, uid);
+      assert.equal((await db.query("select shipping_scope from public.products where sku='A'")).rows[0].shipping_scope, "rm");
+      assert.equal((await db.query("update public.products set shipping_scope='chile' where sku='A' returning shipping_scope")).rows.length, 0);
+    }
+    await setRole("authenticated", adminId);
+    assert.equal((await db.query("update public.products set shipping_scope='chile' where sku='A' returning shipping_scope")).rows[0].shipping_scope, "chile");
+    await setRole("service_role");
+    await db.exec("update public.products set shipping_scope=null where sku='A'");
+  });
   await t.test("changed settings and forged totals fail atomically before creating orders", async () => {
     const before = (await db.query("select count(*) from public.orders")).rows[0].count;
     await assert.rejects(create({ total: 2250 }), /precio o despacho/);
@@ -124,6 +151,32 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     assert.equal((await db.query("select count(*) from public.orders")).rows[0].count, before);
     await save(disabled);
     await assert.rejects(create({ total: 2000 }), /precio o despacho/);
+  });
+  await t.test("product labels govern shipping inside/outside RM and in mixed carts", async () => {
+    await setRole("service_role");
+    await db.exec(`
+      insert into public.shipping_rates (commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max)
+        values ('05101','CL-VS','Valparaíso',350,2,4);
+      update public.products set shipping_scope='rm' where sku='A';
+    `);
+    const pickup = await create({ region: "CL-VS", commune: "05101", total: 2000 });
+    assert.equal((await order(pickup)).shipping_commune, "Retiro en taller");
+    assert.equal(Number((await order(pickup)).shipping_cost), 0);
+    assert.equal((await order(await create())).shipping_commune, "Santiago");
+    await assert.rejects(create({ region: "CL-VS", commune: "05101", total: 2350 }), /precio o despacho/);
+
+    await db.exec("update public.categories set shipping_rm_only=true; update public.products set shipping_scope='chile' where sku='A';");
+    const national = await create({ region: "CL-VS", commune: "05101", total: 2350 });
+    assert.equal((await order(national)).shipping_commune, "Valparaíso");
+    assert.equal(Number((await order(national)).shipping_cost), 350);
+    await db.exec(`insert into public.products (sku,name,category_id,price,stock,active,available,sale_mode,shipping_scope)
+      values ('B','Solo RM','11111111-1111-4111-8111-111111111111',500,10,true,true,'buy','rm');`);
+    const mixed = await create({ region: "CL-VS", commune: "05101", total: 1500, items: [{ sku: "A", quantity: 1 }, { sku: "B", quantity: 1 }] });
+    assert.equal((await order(mixed)).shipping_commune, "Retiro en taller");
+    await assert.rejects(db.exec("update public.products set shipping_scope='invalid' where sku='A'"), /check constraint/);
+    await db.exec("update public.products set shipping_scope=null where sku='A'");
+    assert.equal((await order(await create({ region: "CL-VS", commune: "", total: 2000 }))).shipping_commune, "Retiro en taller");
+    await db.exec("update public.categories set shipping_rm_only=false");
   });
   await t.test("anonymous and customer sessions can read but cannot change promotions or call checkout RPC", async () => {
     await setRole("anon");

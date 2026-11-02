@@ -11,6 +11,8 @@ import {
 import { AdminDeleteDialog } from "@/components/AdminDeleteDialog";
 import { AdminSuccessDialog } from "@/components/AdminSuccessDialog";
 import { validateProductPricing } from "@/lib/product-pricing";
+import { parseProductShippingScope, type ProductShippingScope } from "@/lib/product-shipping";
+import { AdminProductShippingField } from "@/components/AdminProductShippingField";
 
 export type AdminProductRow = {
   id: string;
@@ -29,6 +31,7 @@ export type AdminProductRow = {
   product_images: ProductImageRow[];
   youtube_url: string | null;
   category_id: string | null;
+  shipping_scope: ProductShippingScope | null;
 };
 
 type ProductCategoryOption = { id: string; name: string };
@@ -191,6 +194,7 @@ export function AdminProductTable({
       stock: Number(form.get("stock") || 0),
       youtube_url: String(form.get("youtube_url") || "").trim() || null,
       category_id: categoryId,
+      shipping_scope: parseProductShippingScope(form.get("shipping_scope")),
     });
     if (!saved) return;
     const categoryName = categories.find((category) => category.id === categoryId)?.name ?? "Sin categoría";
@@ -513,6 +517,7 @@ export function AdminProductTable({
               />
               <small id="edit-product-stock-help">Con compra online, el producto se puede comprar mientras tenga stock. Con 0 unidades se muestra agotado.</small>
             </label>
+            <AdminProductShippingField value={editing.shipping_scope} />
             <label>
               Video de YouTube
               <input name="youtube_url" type="url" defaultValue={editing.youtube_url ?? ""} placeholder="https://www.youtube.com/watch?v=..." />
