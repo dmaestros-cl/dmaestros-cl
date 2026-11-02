@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { bluePackageSize, blueUnitPrice, parseProductPackage, packageFromForm } from "../lib/blue-shipping.ts";
+import { bluePackageSize, blueUnitPrice, parseProductPackage, packageFromForm, productDeliveryQuote, FreightCoordinationRequired, parseFreightSettings } from "../lib/blue-shipping.ts";
+import { productShippingQuote, DEFAULT_SHIPPING_RULES } from "../lib/product-shipping-price.ts";
 
 const parcel = { shipping_automatic: true, package_weight_kg: 1, package_length_cm: 10, package_width_cm: 10, package_height_cm: 10 };
 const destination = { commune_code: "vs0101", region_code: "CL-VS", blue_enabled: true, blue_zone: "centro", blue_xs: null, blue_s: null, blue_m: null, blue_l: null };
@@ -48,4 +49,25 @@ test("entering measurements always enables automatic shipping without a mode or 
   assert.equal(packageFromForm(form).shipping_automatic,true);
   form.delete('package_weight_kg');
   assert.throws(()=>packageFromForm(form),/Completa/);
+});
+
+test("special freight is only used outside automatic coverage and coordination never means free", () => {
+  const fixed = { ...parcel, shipping_fallback_mode: 'fixed', shipping_fallback_price: 25000 };
+  assert.deepEqual(productDeliveryQuote(fixed,destination,config),{price:5600,method:'automatic'});
+  assert.deepEqual(productDeliveryQuote({...fixed,package_length_cm:80},destination,config),{price:25000,method:'freight'});
+  assert.deepEqual(productDeliveryQuote(fixed,{...destination,blue_enabled:false},config),{price:25000,method:'freight'});
+  for (const oversized of [{package_length_cm:80},{package_weight_kg:21},{package_length_cm:50,package_width_cm:50,package_height_cm:50}]) {
+    assert.throws(()=>productDeliveryQuote({...parcel,...oversized},destination,config),FreightCoordinationRequired);
+  }
+  assert.throws(()=>productDeliveryQuote({...fixed,package_weight_kg:null},destination,config),/Completa/);
+  assert.throws(()=>productDeliveryQuote({...fixed,package_length_cm:80},destination,{...config,originRegion:null}),/origen/);
+  assert.throws(()=>productDeliveryQuote({...fixed,package_length_cm:80},destination,{...config,tariffs:[]}),/tarifa/);
+  for (const price of [null,0,-1,1.5,1000000000]) assert.throws(()=>parseFreightSettings({...fixed,shipping_fallback_price:price}));
+  assert.deepEqual(parseFreightSettings({shipping_fallback_mode:'coordinate',shipping_fallback_price:25000}),{shipping_fallback_mode:'coordinate',shipping_fallback_price:null});
+  const lines = [
+    {shippingPrice:productDeliveryQuote(parcel,destination,config).price,quantity:2},
+    {shippingPrice:productDeliveryQuote({...fixed,package_length_cm:80},destination,config).price,quantity:1},
+  ];
+  assert.equal(productShippingQuote(lines,0).total,36200);
+  assert.equal(productShippingQuote(lines,0,{...DEFAULT_SHIPPING_RULES,quantity_discount_enabled:true}).total,18100);
 });

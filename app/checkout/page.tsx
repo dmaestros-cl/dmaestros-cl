@@ -9,7 +9,7 @@ import { productShipsOnlyToRM } from "@/lib/product-shipping";
 import { productShippingQuote, parseShippingRules, SHIPPING_RULES_COLUMNS, type ShippingRules } from "@/lib/product-shipping-price";
 import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal, SHIPPING_SETTINGS_COLUMNS, type ShippingSettings } from "@/lib/shipping-policy";
 
-import { BLUE_PRODUCT_COLUMNS, BLUE_RATE_COLUMNS, blueUnitPrice, parseProductPackage, type ProductPackage, type BlueCommune, type BlueConfiguration, type BlueTariff, type BlueZone } from "@/lib/blue-shipping";
+import { BLUE_PRODUCT_COLUMNS, BLUE_RATE_COLUMNS, productDeliveryQuote, FreightCoordinationRequired, parseFreightSettings, parseProductPackage, type ProductPackage, type BlueCommune, type BlueConfiguration, type BlueTariff, type BlueZone } from "@/lib/blue-shipping";
 
 type ShippingProduct = ProductPackage & { sku: string; name: string; rmOnly: boolean };
 
@@ -19,6 +19,7 @@ async function loadShippingProducts(skus: string[]): Promise<ShippingProduct[]> 
   if (error || data?.length !== skus.length) throw new Error("No pudimos verificar el despacho de los productos.");
   return data.map((product) => ({
     ...parseProductPackage(product, false),
+    ...parseFreightSettings(product),
     sku: product.sku,
     name: product.name,
     rmOnly: productShipsOnlyToRM(product.shipping_scope, (Array.isArray(product.categories) ? product.categories[0] : product.categories)?.shipping_rm_only),
@@ -60,6 +61,7 @@ export default function CheckoutPage() {
   const [shippingRules, setShippingRules] = useState<ShippingRules | null>(null);
   const [blueConfig, setBlueConfig] = useState<BlueConfiguration | null>(null);
   const [shippingError, setShippingError] = useState("");
+  const [freightPhone, setFreightPhone] = useState("");
   const subtotal = items.reduce(
     (sum, item) =>
       sum + (item.product.salePrice ?? item.product.price ?? 0) * item.quantity,
@@ -79,22 +81,27 @@ export default function CheckoutPage() {
   function quoteShipping(products: ShippingProduct[], rate: BlueCommune & { price: number }, rules = shippingRules, config = blueConfig) {
     try {
       if (!rules || !config) throw new Error("No pudimos verificar las reglas de despacho.");
+      let specialFreight = false;
       const quote = productShippingQuote(items.map((item) => {
         const product = products.find((entry) => entry.sku === item.product.sku);
         if (!product) throw new Error("No pudimos verificar el despacho de los productos.");
         if ([product.package_weight_kg, product.package_length_cm, product.package_width_cm, product.package_height_cm].some(value => value === null)) throw new Error(`Aún faltan los datos de embalaje de «${product.name}». Contacta a DMaestros para completar el cálculo de envío.`);
-        return { shippingPrice: blueUnitPrice(product, rate, config), quantity: item.quantity };
+        const delivery = productDeliveryQuote(product, rate, config);
+        specialFreight ||= delivery.method === "freight";
+        return { shippingPrice: delivery.price, quantity: item.quantity };
       }), 0, rules);
-      return { ...quote, error: "" };
+      return { ...quote, error: "", specialFreight, needsCoordination: false };
     } catch (error) {
-      return { base: 0, discount: 0, total: 0, error: error instanceof Error ? error.message : "Contacta a DMaestros para cotizar este despacho." };
+      return { base: 0, discount: 0, total: 0, specialFreight: false, needsCoordination: error instanceof FreightCoordinationRequired, error: error instanceof Error ? error.message : "Contacta a DMaestros para cotizar este despacho." };
     }
   }
   const freeShipping = !requiresPickup && shippingSettings !== null && qualifiesForFreeShipping(subtotal, shippingSettings);
-  const shippingQuote = coverageReady && selectedRate && !requiresPickup ? quoteShipping(shippingProducts, selectedRate) : { base: 0, discount: 0, total: 0, error: "" };
+  const shippingQuote = coverageReady && selectedRate && !requiresPickup ? quoteShipping(shippingProducts, selectedRate) : { base: 0, discount: 0, total: 0, error: "", specialFreight: false, needsCoordination: false };
   const shippingCost = requiresPickup || freeShipping ? 0 : shippingQuote.total;
   const shippingDiscount = requiresPickup || freeShipping ? 0 : shippingQuote.discount;
   const total = subtotal + shippingCost;
+  const freightMessage = `Hola DMaestros, quisiera coordinar el flete a ${selectedRate?.commune_name ?? "mi comuna"} para: ${items.map(item => `${item.quantity} × ${item.product.name} (${item.product.sku})`).join(", ")}. Necesito confirmar el valor y las condiciones de entrega antes de pagar.`;
+  const freightContact = freightPhone ? `https://wa.me/${freightPhone}?text=${encodeURIComponent(freightMessage)}` : "/informacion/contacto";
 
   useEffect(() => {
     fetch("/api/payments/webpay/config", { cache: "no-store" }).then((response) => response.json()).then(setPaymentConfig).catch(() => setPaymentConfig({ enabled: false }));
@@ -113,12 +120,15 @@ export default function CheckoutPage() {
         .eq("active", true)
         .order("commune_name"),
       supabase.from("shipping_settings").select(`${SHIPPING_SETTINGS_COLUMNS},${SHIPPING_RULES_COLUMNS},origin_commune_code`).eq("id", true).single(),
-    ]).then(async ([regionResult, rateResult, settingsResult]) => {
+      supabase.from("store_settings").select("whatsapp_number").eq("id", true).maybeSingle(),
+    ]).then(async ([regionResult, rateResult, settingsResult, contactResult]) => {
       if (cancelled) return;
       if (regionResult.error || rateResult.error || settingsResult.error) throw new Error("shipping_unavailable");
       const configuration = await loadBlueConfiguration(settingsResult.data.origin_commune_code);
       if (cancelled) return;
       setBlueConfig(configuration);
+      const digits = String(contactResult.data?.whatsapp_number ?? "").replace(/\D/g, "");
+      setFreightPhone(digits.length === 9 && digits.startsWith("9") ? `56${digits}` : digits);
       setShippingSettings(parseShippingSettings(settingsResult.data));
       setShippingRules(parseShippingRules(settingsResult.data));
       const nextRegions = regionResult.data ?? [];
@@ -320,15 +330,14 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                 ) : shippingQuote.error ? (
-                  <div className="checkout-delivery-note" role="alert"><strong>Despacho por coordinar</strong><span>{shippingQuote.error}</span><Link href="/informacion/contacto">Consultar despacho</Link></div>
+                  <div className="checkout-delivery-note" role="alert"><strong>{shippingQuote.needsCoordination ? "Flete por coordinar" : "Datos de despacho pendientes"}</strong><span>{shippingQuote.error}</span><a href={freightContact} target={freightPhone ? "_blank" : undefined} rel={freightPhone ? "noreferrer" : undefined}>{shippingQuote.needsCoordination ? "Coordinar flete con DMaestros" : "Consultar despacho"}</a></div>
                 ) : selectedRate && coverageReady ? (
                   <div className="checkout-delivery-note">
                     <strong>
                       {shippingCost === 0 ? "Despacho gratis" : `Despacho: $${shippingCost.toLocaleString("es-CL")}`}
                     </strong>
                     <span>
-                      Entrega estimada: {selectedRate.estimated_days_min}–
-                      {selectedRate.estimated_days_max} días hábiles.
+                      {shippingQuote.specialFreight ? "Incluye flete especial definido por DMaestros. El plazo y las condiciones de entrega se coordinan con la tienda." : `Entrega estimada: ${selectedRate.estimated_days_min}–${selectedRate.estimated_days_max} días hábiles.`}
                     </span>
                   </div>
                 ) : null}
@@ -349,13 +358,13 @@ export default function CheckoutPage() {
                   <strong>${subtotal.toLocaleString("es-CL")}</strong>
                 </div>
                 <div>
-                  <span>Despacho</span>
+                  <span>{shippingQuote.specialFreight ? "Despacho y flete especial" : "Despacho"}</span>
                   <strong>
                     {!coverageReady
                       ? "Verificando…"
                       : requiresPickup
                       ? "Retiro en taller"
-                      : shippingQuote.error ? "Por cotizar" : selectedRate
+                      : shippingQuote.error ? (shippingQuote.needsCoordination ? "Por coordinar" : "Por cotizar") : selectedRate
                         ? shippingCost + shippingDiscount === 0 ? "Gratis" : `$${(shippingCost + shippingDiscount).toLocaleString("es-CL")}`
                         : "Por seleccionar"}
                   </strong>
@@ -377,6 +386,7 @@ export default function CheckoutPage() {
                         ? `Agrega $${Math.max(0, shippingSettings.minimum_subtotal! - subtotal).toLocaleString("es-CL")} en productos para obtener envío gratis.`
                         : shippingRules?.quantity_discount_enabled
                           ? `${shippingRules.quantity_discount_percent}% de descuento en despacho desde ${shippingRules.quantity_discount_min_units} unidades.`
+                        : shippingQuote.specialFreight ? "El flete especial se cobra por unidad y respeta las reglas de despacho de la tienda."
                         : "Despacho calculado automáticamente según peso, medidas, cantidades y comuna de destino."}
                 </p>
               </aside>

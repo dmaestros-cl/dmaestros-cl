@@ -411,6 +411,32 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await db.exec("update public.products set shipping_scope='rm',package_weight_kg=null where sku='A'");
     assert.equal((await order(await create({total:2000,region:'CL-VS',commune:''}))).shipping_commune,'Retiro en taller');
   });
+  await t.test("exceptional freight is explicit, preserves automatic priority and fails closed before payment", async () => {
+    await setRole("service_role");
+    await db.exec(await migration("20261102224000_exceptional_freight"));
+    await setRole("authenticated",adminId);
+    await db.exec("update public.products set shipping_scope='chile',package_weight_kg=1,package_length_cm=10,package_width_cm=10,package_height_cm=10,shipping_fallback_mode='fixed',shipping_fallback_price=25000 where sku='A'");
+    assert.equal((await create({total:10400})).amount,10400); // Automatic still wins.
+    await db.exec("update public.products set package_length_cm=80 where sku='A'");
+    const fixedPayment = await create({total:52000});
+    assert.equal(Number((await order(fixedPayment)).shipping_cost),50000);
+    await assert.rejects(create({total:2000}),/precio o despacho/);
+    await db.exec("update public.products set shipping_fallback_mode='coordinate',shipping_fallback_price=null where sku='A'; update public.shipping_settings set mode='all'");
+    await assert.rejects(create({total:2000}),/Flete por coordinar/); // Promotion cannot bypass coordination.
+    assert.equal((await create({id:fixedPayment.id,total:52000})).created,false);
+    await db.exec("update public.shipping_settings set mode='disabled'; update public.products set package_length_cm=10,shipping_fallback_mode='fixed',shipping_fallback_price=25000 where sku='A'; update public.shipping_rates set blue_enabled=false where commune_code='13101'");
+    assert.equal((await create({total:52000})).amount,52000);
+    await db.exec("update public.shipping_rates set active=false where commune_code='13101'");
+    await assert.rejects(create({total:52000}),/comuna/);
+    await db.exec("update public.shipping_rates set active=true,blue_enabled=true where commune_code='13101'; update public.products set package_weight_kg=null where sku='A'");
+    await assert.rejects(create({total:52000}),/Faltan/);
+    await db.exec("update public.products set package_weight_kg=1,package_length_cm=80 where sku='A'; update public.products set price=2000,sale_price=null,stock=10,available=true,active=true,sale_mode='buy',shipping_scope='chile',package_weight_kg=0.5,package_length_cm=10,package_width_cm=10,package_height_cm=10 where sku='B'");
+    assert.equal((await create({items:[{sku:'A',quantity:1},{sku:'B',quantity:2}],total:36200})).amount,36200);
+    await setRole('authenticated',customerId);
+    assert.equal((await db.query("update public.products set shipping_fallback_price=1 where sku='A' returning id")).rows.length,0);
+    await setRole('authenticated',adminId);
+    for (const price of [0,-1,null,1000000000]) await assert.rejects(db.query("update public.products set shipping_fallback_price=$1 where sku='A'",[price]),/check constraint/);
+  });
   await t.test("database rejects invalid thresholds and revoking admin privileges immediately blocks changes", async () => {
     await setRole("authenticated", adminId);
     for (const minimum of [0, -1, null, 1000000000]) {

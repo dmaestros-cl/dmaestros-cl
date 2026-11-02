@@ -738,3 +738,9 @@ html:has(.admin-order-dialog[open]) { overflow:hidden; scrollbar-gutter:stable; 
 .shipping-blue-overrides input[type=checkbox] { width: 20px; height: 20px; min-height: 0; accent-color: #218154; }
 .shipping-blue-overrides p { color: #617784; font-size: 12px; line-height: 1.6; }
 .admin-modal label[hidden] { display: none; }
+
+.admin-freight-settings { border: 1px solid #d9e4e9; border-radius: 12px; background: #f8fafb; }
+.admin-freight-settings summary { padding: 16px; cursor: pointer; font-size: 13px; font-weight: 700; color: #284958; }
+.admin-freight-settings-body { display: grid; gap: 14px; padding: 0 16px 18px; }
+.admin-freight-settings-body p { margin: 0; font-size: 13px; line-height: 1.55; color: #58717f; }
+.admin-freight-settings-body .admin-freight-reason { border-left: 3px solid #bd8943; padding: 10px 12px; background: #fff7eb; color: #77532b; border-radius: 4px; }
