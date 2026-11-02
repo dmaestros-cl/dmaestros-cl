@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal } from "../lib/shipping-policy.ts";
 import { productShipsOnlyToRM } from "../lib/product-shipping.ts";
+import { parseProductShippingPrice, productShippingCost } from "../lib/product-shipping-price.ts";
 
 const disabled = { mode: "disabled", minimum_subtotal: null };
 const all = { mode: "all", minimum_subtotal: null };
@@ -12,6 +13,19 @@ const threshold = { mode: "threshold", minimum_subtotal: 2000 };
 const migration = (name) => readFile(new URL(`../supabase/migrations/${name}.sql`, import.meta.url), "utf8");
 const adminId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const customerId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+test("product shipping prices distinguish inherited, free and per-unit fees", () => {
+  for (const value of [null, undefined, "", "  "]) assert.equal(parseProductShippingPrice(value), null);
+  assert.equal(parseProductShippingPrice("0"), 0);
+  assert.equal(parseProductShippingPrice("5000"), 5000);
+  for (const value of [-1, 1.5, NaN, Infinity, "abc", true, {}, 1000000000]) assert.throws(() => parseProductShippingPrice(value));
+  assert.equal(productShippingCost([{ shippingPrice: 5000, quantity: 2 }, { shippingPrice: 8000, quantity: 1 }], 3000), 18000);
+  assert.equal(productShippingCost([{ shippingPrice: 0, quantity: 3 }], 3000), 0);
+  assert.equal(productShippingCost([{ shippingPrice: null, quantity: 2 }, { shippingPrice: null, quantity: 1 }], 3000), 3000);
+  assert.equal(productShippingCost([{ shippingPrice: 5000, quantity: 2 }, { shippingPrice: null, quantity: 3 }], 3000), 13000);
+  assert.throws(() => productShippingCost([{ shippingPrice: 100, quantity: 0 }], 3000));
+  assert.throws(() => productShippingCost([{ shippingPrice: null, quantity: 1 }], NaN));
+});
 
 test("product coverage overrides its category, while unconfigured products inherit it", () => {
   for (const category of [true, false]) {
@@ -81,7 +95,7 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await db.exec(base.match(new RegExp(`create policy "${policy}"[^;]+;`))[0]);
   }
   await db.exec("alter table public.products add column sale_price numeric(12,2); alter table public.categories add column shipping_rm_only boolean not null default false;");
-  for (const name of ["20261010232000_sales_and_store_settings", "20261010233000_checkout_orders", "20261011000000_commune_shipping", "20261011060000_product_manual_availability", "20261013150000_webpay_plus", "20261014210000_free_shipping", "20261101220000_product_shipping_scope"]) {
+  for (const name of ["20261010232000_sales_and_store_settings", "20261010233000_checkout_orders", "20261011000000_commune_shipping", "20261011060000_product_manual_availability", "20261013150000_webpay_plus", "20261014210000_free_shipping", "20261101220000_product_shipping_scope", "20261102150000_product_shipping_price"]) {
     await db.exec(await migration(name));
   }
   await db.exec(`
@@ -197,6 +211,54 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await db.exec("update public.products set shipping_scope=null where sku='A'");
     assert.equal((await order(await create({ region: "CL-VS", commune: "", total: 2000 }))).shipping_commune, "Retiro en taller");
     await db.exec("update public.categories set shipping_rm_only=false");
+  });
+  await t.test("administrators save per-product prices; shoppers can read but cannot alter them", async () => {
+    await setRole("authenticated", adminId);
+    assert.equal((await db.query("update public.products set shipping_price=400 where sku='A' returning shipping_price")).rows[0].shipping_price, 400);
+    for (const [role, uid] of [["anon", ""], ["authenticated", customerId]]) {
+      await setRole(role, uid);
+      assert.equal((await db.query("select shipping_price from public.products where sku='A'")).rows[0].shipping_price, 400);
+      assert.equal((await db.query("update public.products set shipping_price=0 where sku='A' returning shipping_price")).rows.length, 0);
+    }
+    await setRole("service_role");
+    for (const price of [-1, 1000000000]) await assert.rejects(db.query("update public.products set shipping_price=$1 where sku='A'", [price]), /check constraint/);
+  });
+  await t.test("checkout sums configured shipping per unit and retains one inherited commune fee", async () => {
+    await setRole("service_role");
+    await db.exec("update public.products set shipping_price=600 where sku='B'");
+    const sameProduct = await create({ total: 2800 });
+    assert.equal(Number((await order(sameProduct)).shipping_cost), 800);
+    const items = [{ sku: "A", quantity: 2 }, { sku: "B", quantity: 3 }];
+    const mixed = await create({ items, total: 6100 });
+    assert.equal(Number((await order(mixed)).shipping_cost), 2600);
+    await db.exec("update public.products set shipping_price=null where sku='B'");
+    const inherited = await create({ items, total: 4550 });
+    assert.equal(Number((await order(inherited)).shipping_cost), 1050);
+    await assert.rejects(create({ total: 2250 }), /precio o despacho/);
+    // An already-created attempt keeps the amount it was approved to request.
+    await db.exec("update public.products set shipping_price=500 where sku='A'");
+    assert.equal((await create({ id: sameProduct.id, total: 2800 })).amount, 2800);
+    const before = (await db.query("select count(*) from public.orders")).rows[0].count;
+    await assert.rejects(create({ total: 2800 }), /precio o despacho/);
+    assert.equal((await db.query("select count(*) from public.orders")).rows[0].count, before);
+  });
+  await t.test("free product shipping, promotions and RM pickup take precedence without enabling unavailable communes", async () => {
+    await db.exec("update public.products set shipping_price=0 where sku='A'");
+    assert.equal(Number((await order(await create({ total: 2000 }))).shipping_cost), 0);
+    await assert.rejects(create({ commune: "missing", total: 2000 }), /comuna/);
+    await db.exec("update public.products set shipping_price=500 where sku='A'");
+    await save(all);
+    assert.equal(Number((await order(await create({ total: 2000 }))).shipping_cost), 0);
+    await save(threshold);
+    assert.equal((await create({ total: 2000 })).amount, 2000);
+    assert.equal((await create({ quantity: 1, total: 1500 })).amount, 1500);
+    await save(disabled);
+    await db.exec("update public.products set shipping_scope='rm' where sku='A'");
+    const pickup = await create({ region: "CL-VS", commune: "05101", total: 2000 });
+    assert.equal((await order(pickup)).shipping_commune, "Retiro en taller");
+    assert.equal(Number((await order(pickup)).shipping_cost), 0);
+    await db.exec("update public.products set shipping_price=null,shipping_scope=null where sku='A'");
+    assert.equal((await create()).amount, 2250);
   });
   await t.test("anonymous and customer sessions can read but cannot change promotions or call checkout RPC", async () => {
     await setRole("anon");

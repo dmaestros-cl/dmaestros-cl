@@ -17,7 +17,7 @@ export default async function ProductsPage() {
     supabase
       .from("products")
       .select(
-        "id,sku,slug,name,description,image_url,price,sale_price,stock,available,active,sale_mode,youtube_url,shipping_scope,category_id,categories(name),product_images(id,asset_id,public_url,alt,sort_order,is_primary)",
+        "id,sku,slug,name,description,image_url,price,sale_price,stock,available,active,sale_mode,youtube_url,shipping_scope,shipping_price,category_id,categories(name),product_images(id,asset_id,public_url,alt,sort_order,is_primary)",
       )
       .order("created_at", { ascending: false }),
     supabase
@@ -46,6 +46,7 @@ export default async function ProductsPage() {
       sale_mode: product.sale_mode,
       youtube_url: product.youtube_url,
       shipping_scope: parseProductShippingScope(product.shipping_scope),
+      shipping_price: product.shipping_price == null ? null : Number(product.shipping_price),
       category_id: product.category_id,
       product_images: [...product.product_images].sort(
         (a, b) => a.sort_order - b.sort_order,

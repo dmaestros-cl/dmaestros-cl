@@ -8,6 +8,7 @@ import { AdminSuccessDialog } from "@/components/AdminSuccessDialog";
 import { validateProductPricing } from "@/lib/product-pricing";
 import { parseProductShippingScope } from "@/lib/product-shipping";
 import { AdminProductShippingField } from "@/components/AdminProductShippingField";
+import { parseProductShippingPrice } from "@/lib/product-shipping-price";
 
 type Category = { id: string; name: string };
 
@@ -31,6 +32,9 @@ export function AdminProductForm({ categories }: { categories: Category[] }) {
     };
     const priceError = validateProductPricing(pricing);
     if (priceError) return setMessage(priceError);
+    let shippingPrice: number | null;
+    try { shippingPrice = parseProductShippingPrice(form.get("shipping_price")); }
+    catch (error) { return setMessage(error instanceof Error ? error.message : "Revisa el precio de despacho."); }
     const files = (form.getAll("images") as File[]).filter((file) => file.size);
     if (!files.length) return setMessage("Selecciona al menos una imagen.");
     if (files.length > 10) return setMessage("Puedes cargar un máximo de 10 imágenes.");
@@ -52,6 +56,7 @@ export function AdminProductForm({ categories }: { categories: Category[] }) {
         description: String(form.get("description") || "").trim(),
         category_id: String(form.get("category_id")) || null,
         shipping_scope: parseProductShippingScope(form.get("shipping_scope")),
+        shipping_price: shippingPrice,
         ...pricing,
         stock,
         ...(pricing.sale_mode === "buy" ? { available: stock > 0 } : {}),

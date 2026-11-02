@@ -1,6 +1,7 @@
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { AdminShippingManager, type ShippingRate, type ShippingRegion } from "@/components/AdminShippingManager";
 import { requireAdmin } from "@/lib/admin";
+import Link from "next/link";
 import { AdminFreeShippingSettings } from "@/components/AdminFreeShippingSettings";
 import { parseShippingSettings, SHIPPING_SETTINGS_COLUMNS, type ShippingSettings } from "@/lib/shipping-policy";
 
@@ -16,7 +17,7 @@ export default async function ShippingPage() {
     try { settings = parseShippingSettings(settingsResult.data); } catch { /* Show the unavailable state, never a fake saved setting. */ }
   }
   return <>
-    <AdminPageHeader eyebrow="Logística" title="Envíos" description="Edita tarifas, plazos y disponibilidad para las 346 comunas de Chile." />
+    <AdminPageHeader eyebrow="Logística" title="Envíos" description="Tarifas generales, plazos y comunas disponibles. Puedes definir un precio propio de despacho en la ficha de cada producto." action={<Link className="admin-secondary-button" href="/admin/productos">Tarifas por producto</Link>} />
     <AdminFreeShippingSettings initialSettings={settings} />
     <AdminShippingManager regions={(regions ?? []) as ShippingRegion[]} initialRates={(rates ?? []).map((rate) => ({ ...rate, price: Number(rate.price) })) as ShippingRate[]} />
   </>;
