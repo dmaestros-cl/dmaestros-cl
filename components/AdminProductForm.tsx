@@ -9,7 +9,6 @@ import { validateProductPricing } from "@/lib/product-pricing";
 import { parseProductShippingScope } from "@/lib/product-shipping";
 import { AdminProductShippingField } from "@/components/AdminProductShippingField";
 import { packageFromForm, type ProductPackage } from "@/lib/blue-shipping";
-import { parseProductShippingPrice } from "@/lib/product-shipping-price";
 
 type Category = { id: string; name: string };
 
@@ -33,10 +32,9 @@ export function AdminProductForm({ categories }: { categories: Category[] }) {
     };
     const priceError = validateProductPricing(pricing);
     if (priceError) return setMessage(priceError);
-    let shippingPrice: number | null;
     let parcel: ProductPackage;
-    try { shippingPrice = parseProductShippingPrice(form.get("shipping_price")); parcel = packageFromForm(form); }
-    catch (error) { return setMessage(error instanceof Error ? error.message : "Revisa el precio de despacho."); }
+    try { parcel = packageFromForm(form); }
+    catch (error) { return setMessage(error instanceof Error ? error.message : "Revisa el peso y las medidas."); }
     const files = (form.getAll("images") as File[]).filter((file) => file.size);
     if (!files.length) return setMessage("Selecciona al menos una imagen.");
     if (files.length > 10) return setMessage("Puedes cargar un máximo de 10 imágenes.");
@@ -58,7 +56,6 @@ export function AdminProductForm({ categories }: { categories: Category[] }) {
         description: String(form.get("description") || "").trim(),
         category_id: String(form.get("category_id")) || null,
         shipping_scope: parseProductShippingScope(form.get("shipping_scope")),
-        shipping_price: shippingPrice,
         ...parcel,
         ...pricing,
         stock,

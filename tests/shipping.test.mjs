@@ -392,6 +392,25 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await assert.rejects(db.query("delete from public.shipping_settings"), /permission denied/);
     await assert.rejects(db.query("select public.create_webpay_order(null,null,null,null,null,null,null,null,null,null)"), /permission denied/);
   });
+  await t.test("automatic-only checkout ignores legacy modes and fixed prices, preserving prior attempts", async () => {
+    const previous = await create();
+    await db.exec(await migration("20261102223000_automatic_shipping_only"));
+    assert.equal((await create({id:previous.id,total:2250})).created,false);
+    await setRole("authenticated",adminId);
+    await db.exec("update public.products set shipping_automatic=false,shipping_price=1 where sku='A'");
+    assert.equal((await create({total:10400})).amount,10400);
+    await assert.rejects(create({total:2002}),/precio o despacho/);
+    await db.exec("update public.products set package_weight_kg=null where sku='A'");
+    await assert.rejects(create({total:2002}),/Faltan el peso/);
+    await db.exec("update public.products set package_weight_kg=1 where sku='A'; update public.shipping_settings set quantity_discount_enabled=true,quantity_discount_min_units=2,quantity_discount_percent=50");
+    assert.equal((await create({total:6200})).amount,6200);
+    await db.exec("update public.shipping_settings set quantity_discount_enabled=false,calculation_mode='highest'");
+    assert.equal((await create({total:6200})).amount,6200);
+    await db.exec("update public.shipping_settings set calculation_mode='per_unit'; update public.products set package_length_cm=80 where sku='A'");
+    await assert.rejects(create({total:10400}),/70 cm/);
+    await db.exec("update public.products set shipping_scope='rm',package_weight_kg=null where sku='A'");
+    assert.equal((await order(await create({total:2000,region:'CL-VS',commune:''}))).shipping_commune,'Retiro en taller');
+  });
   await t.test("database rejects invalid thresholds and revoking admin privileges immediately blocks changes", async () => {
     await setRole("authenticated", adminId);
     for (const minimum of [0, -1, null, 1000000000]) {

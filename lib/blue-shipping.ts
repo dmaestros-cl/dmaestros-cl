@@ -20,8 +20,7 @@ export type ProductPackage = {
 };
 export type BlueConfiguration = { originRegion: string | null; originZone: BlueZone | null; tariffs: BlueTariff[] };
 
-export function parseProductPackage(row: Record<string, unknown>): ProductPackage {
-  if (typeof row.shipping_automatic !== "boolean") throw new Error("Selecciona cómo calcular el despacho.");
+export function parseProductPackage(row: Record<string, unknown>, requireComplete = true): ProductPackage {
   const measurement = (key: string, decimals: number) => {
     const raw = row[key];
     if (raw === null || raw === undefined || raw === "") return null;
@@ -31,18 +30,18 @@ export function parseProductPackage(row: Record<string, unknown>): ProductPackag
     return n;
   };
   const result = {
-    shipping_automatic: row.shipping_automatic,
+    shipping_automatic: true,
     package_weight_kg: measurement("package_weight_kg", 3),
     package_length_cm: measurement("package_length_cm", 1),
     package_width_cm: measurement("package_width_cm", 1),
     package_height_cm: measurement("package_height_cm", 1),
   };
-  if (result.shipping_automatic && Object.entries(result).some(([key, value]) => key !== "shipping_automatic" && value === null)) throw new Error("Completa el peso, largo, ancho y alto del producto embalado para calcular el despacho automático.");
+  if (requireComplete && Object.entries(result).some(([key, value]) => key !== "shipping_automatic" && value === null)) throw new Error("Completa el peso, largo, ancho y alto del producto embalado para calcular el despacho automático.");
   return result;
 }
 
 export function packageFromForm(form: FormData): ProductPackage {
-  return parseProductPackage({ ...Object.fromEntries(["package_weight_kg", "package_length_cm", "package_width_cm", "package_height_cm"].map(key => [key, form.get(key)])), shipping_automatic: form.get("shipping_automatic") === "true" });
+  return parseProductPackage(Object.fromEntries(["package_weight_kg", "package_length_cm", "package_width_cm", "package_height_cm"].map(key => [key, form.get(key)])));
 }
 
 export function bluePackageSize(input: ProductPackage) {

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { bluePackageSize, blueUnitPrice, parseProductPackage } from "../lib/blue-shipping.ts";
+import { bluePackageSize, blueUnitPrice, parseProductPackage, packageFromForm } from "../lib/blue-shipping.ts";
 
 const parcel = { shipping_automatic: true, package_weight_kg: 1, package_length_cm: 10, package_width_cm: 10, package_height_cm: 10 };
 const destination = { commune_code: "vs0101", region_code: "CL-VS", blue_enabled: true, blue_zone: "centro", blue_xs: null, blue_s: null, blue_m: null, blue_l: null };
@@ -36,5 +36,16 @@ test("missing and invalid measurements do not become invented prices; oversize r
   assert.throws(()=>parseProductPackage({...parcel,package_length_cm:10.01}));
   assert.throws(()=>bluePackageSize({...parcel,package_length_cm:70.1}),/70 cm/);
   assert.equal(bluePackageSize({...parcel,package_length_cm:70}).band,"s");
-  assert.equal(parseProductPackage({...parcel,shipping_automatic:false,package_weight_kg:null}).package_weight_kg,null);
+  assert.throws(()=>parseProductPackage({...parcel,shipping_automatic:false,package_weight_kg:null}),/Completa/);
+  assert.equal(parseProductPackage({...parcel,package_weight_kg:null},false).package_weight_kg,null);
+});
+
+test("entering measurements always enables automatic shipping without a mode or price", () => {
+  const form = new FormData();
+  for (const [key,value] of Object.entries(parcel)) if (key !== 'shipping_automatic') form.set(key,String(value));
+  assert.equal(packageFromForm(form).shipping_automatic,true);
+  form.set('shipping_automatic','false'); form.set('shipping_price','1');
+  assert.equal(packageFromForm(form).shipping_automatic,true);
+  form.delete('package_weight_kg');
+  assert.throws(()=>packageFromForm(form),/Completa/);
 });

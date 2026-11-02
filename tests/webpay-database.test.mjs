@@ -23,7 +23,7 @@ test("Webpay SQL: atomic orders, authoritative totals, RLS and verified settleme
     create policy "Admin manages orders" on public.orders for all using (public.is_dmaestros_admin()) with check (public.is_dmaestros_admin());
     alter table public.products add column sale_price numeric(12,2);
     alter table public.categories add column shipping_rm_only boolean not null default false;`);
-  for (const file of ["20261010232000_sales_and_store_settings.sql", "20261010233000_checkout_orders.sql", "20261011000000_commune_shipping.sql", "20261011060000_product_manual_availability.sql", "20261013150000_webpay_plus.sql", "20261013203000_order_email_notifications.sql", "20261014210000_free_shipping.sql", "20261101220000_product_shipping_scope.sql", "20261102150000_product_shipping_price.sql", "20261102160000_custom_shipping_rules.sql", "20261102210000_blue_express_shipping.sql", "20261102211000_blue_pyme_tariff.sql"]) {
+  for (const file of ["20261010232000_sales_and_store_settings.sql", "20261010233000_checkout_orders.sql", "20261011000000_commune_shipping.sql", "20261011060000_product_manual_availability.sql", "20261013150000_webpay_plus.sql", "20261013203000_order_email_notifications.sql", "20261014210000_free_shipping.sql", "20261101220000_product_shipping_scope.sql", "20261102150000_product_shipping_price.sql", "20261102160000_custom_shipping_rules.sql", "20261102210000_blue_express_shipping.sql", "20261102211000_blue_pyme_tariff.sql", "20261102212000_public_shipping_origin.sql", "20261102223000_automatic_shipping_only.sql"]) {
     await db.exec(await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"));
   }
   await db.exec(`
@@ -34,6 +34,9 @@ test("Webpay SQL: atomic orders, authoritative totals, RLS and verified settleme
     insert into public.shipping_regions (code,name) values ('CL-RM','Metropolitana'),('CL-VS','Valparaíso');
     insert into public.shipping_rates (commune_code,region_code,commune_name,price,estimated_days_min,estimated_days_max)
       values ('13101','CL-RM','Santiago',250,1,3);
+    update public.products set package_weight_kg=0.5,package_length_cm=10,package_width_cm=10,package_height_cm=10;
+    update public.shipping_rates set blue_zone='santiago',blue_xs=125 where commune_code='13101';
+    update public.shipping_settings set origin_commune_code='13101';
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant all on public.orders, public.order_items to anon,authenticated,service_role;
     grant usage,select on all sequences in schema public to anon,authenticated,service_role;

@@ -6,21 +6,21 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { useCart } from "@/components/CartProvider";
 import { createClient } from "@/lib/supabase/client";
 import { productShipsOnlyToRM } from "@/lib/product-shipping";
-import { parseProductShippingPrice, productShippingQuote, parseShippingRules, SHIPPING_RULES_COLUMNS, type ShippingRules } from "@/lib/product-shipping-price";
+import { productShippingQuote, parseShippingRules, SHIPPING_RULES_COLUMNS, type ShippingRules } from "@/lib/product-shipping-price";
 import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal, SHIPPING_SETTINGS_COLUMNS, type ShippingSettings } from "@/lib/shipping-policy";
 
 import { BLUE_PRODUCT_COLUMNS, BLUE_RATE_COLUMNS, blueUnitPrice, parseProductPackage, type ProductPackage, type BlueCommune, type BlueConfiguration, type BlueTariff, type BlueZone } from "@/lib/blue-shipping";
 
-type ShippingProduct = ProductPackage & { sku: string; rmOnly: boolean; shippingPrice: number | null };
+type ShippingProduct = ProductPackage & { sku: string; name: string; rmOnly: boolean };
 
 async function loadShippingProducts(skus: string[]): Promise<ShippingProduct[]> {
   const { data, error } = await createClient().from("products")
-    .select(`sku,shipping_scope,shipping_price,${BLUE_PRODUCT_COLUMNS},categories!inner(shipping_rm_only)`).in("sku", skus);
+    .select(`sku,name,shipping_scope,${BLUE_PRODUCT_COLUMNS},categories!inner(shipping_rm_only)`).in("sku", skus);
   if (error || data?.length !== skus.length) throw new Error("No pudimos verificar el despacho de los productos.");
   return data.map((product) => ({
-    ...parseProductPackage(product),
+    ...parseProductPackage(product, false),
     sku: product.sku,
-    shippingPrice: parseProductShippingPrice(product.shipping_price),
+    name: product.name,
     rmOnly: productShipsOnlyToRM(product.shipping_scope, (Array.isArray(product.categories) ? product.categories[0] : product.categories)?.shipping_rm_only),
   }));
 }
@@ -82,8 +82,9 @@ export default function CheckoutPage() {
       const quote = productShippingQuote(items.map((item) => {
         const product = products.find((entry) => entry.sku === item.product.sku);
         if (!product) throw new Error("No pudimos verificar el despacho de los productos.");
-        return { shippingPrice: product.shipping_automatic ? blueUnitPrice(product, rate, config) : product.shippingPrice, quantity: item.quantity };
-      }), rate.price, rules);
+        if ([product.package_weight_kg, product.package_length_cm, product.package_width_cm, product.package_height_cm].some(value => value === null)) throw new Error(`Aún faltan los datos de embalaje de «${product.name}». Contacta a DMaestros para completar el cálculo de envío.`);
+        return { shippingPrice: blueUnitPrice(product, rate, config), quantity: item.quantity };
+      }), 0, rules);
       return { ...quote, error: "" };
     } catch (error) {
       return { base: 0, discount: 0, total: 0, error: error instanceof Error ? error.message : "Contacta a DMaestros para cotizar este despacho." };
@@ -376,9 +377,7 @@ export default function CheckoutPage() {
                         ? `Agrega $${Math.max(0, shippingSettings.minimum_subtotal! - subtotal).toLocaleString("es-CL")} en productos para obtener envío gratis.`
                         : shippingRules?.quantity_discount_enabled
                           ? `${shippingRules.quantity_discount_percent}% de descuento en despacho desde ${shippingRules.quantity_discount_min_units} unidades.`
-                        : shippingProducts.some((product) => product.shipping_automatic || product.shippingPrice !== null)
-                          ? "Despacho calculado según el embalaje de los productos, sus cantidades y el destino."
-                          : "Tarifa calculada según la comuna seleccionada."}
+                        : "Despacho calculado automáticamente según peso, medidas, cantidades y comuna de destino."}
                 </p>
               </aside>
             </div>

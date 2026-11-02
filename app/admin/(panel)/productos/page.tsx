@@ -59,6 +59,7 @@ export default async function ProductsPage() {
       category_name: category?.name ?? "Sin categoría",
     };
   });
+  const incompleteShipping = rows.filter(product => product.sale_mode === "buy" && product.active && [product.package_weight_kg, product.package_length_cm, product.package_width_cm, product.package_height_cm].some(value => value === null)).length;
   return (
     <>
       <AdminPageHeader
@@ -81,6 +82,7 @@ export default async function ProductsPage() {
         </div>
       ) : (
         <>
+          {incompleteShipping > 0 && <p className="admin-alert">{incompleteShipping} productos con compra online aún necesitan peso y medidas del embalaje. Completa esos campos en Editar para que el envío se calcule automáticamente.</p>}
           <AdminProductTable initialRows={rows} categories={categories ?? []} />
         </>
       )}
