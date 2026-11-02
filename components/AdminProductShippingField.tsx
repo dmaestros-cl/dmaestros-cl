@@ -8,6 +8,6 @@ export function AdminProductShippingField({ value }: { value?: ProductShippingSc
       <option value="rm">{productShippingLabel("rm")}</option>
       <option value="chile">{productShippingLabel("chile")}</option>
     </select>
-    <small>Se mostrará en la foto del producto. La cobertura elegida también se aplicará al finalizar la compra.</small>
+    <small>Se mostrará junto al precio y los botones del producto. La cobertura elegida también se aplicará al finalizar la compra.</small>
   </label>;
 }

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ProductActions } from "@/components/ProductActions";
 import { ProductCardMedia } from "@/components/ProductCardMedia";
 import { ProductCardPrice } from "@/components/ProductCardPrice";
+import { ProductShippingNote } from "@/components/ProductShippingNote";
 import { normalizeSearch, type CatalogProduct } from "@/lib/catalog";
 
 export function ShopCatalog({ initialCategory, initialQuery = "", products, categories, whatsappNumber }: { initialCategory?: string; initialQuery?: string; products: CatalogProduct[]; categories: string[]; whatsappNumber: string }) {
@@ -83,10 +84,11 @@ export function ShopCatalog({ initialCategory, initialQuery = "", products, cate
           <div className="shop-product-grid">
             {visible.map((product) => (
               <article className="shop-product-card" key={product.sku}>
-                <ProductCardMedia className="shop-product-image" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} shippingScope={product.shippingScope} available={product.available} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 260px" />
+                <ProductCardMedia className="shop-product-image" href={`/productos/${encodeURIComponent(product.slug || product.sku)}`} image={product.image} name={product.name} videoUrl={product.youtubeUrl} available={product.available} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 260px" />
                 <p>{product.category} · {product.sku}</p>
                 <h2>{product.name}</h2>
                 <ProductCardPrice product={product} />
+                <ProductShippingNote scope={product.shippingScope} />
                 <ProductActions product={product} whatsappNumber={whatsappNumber} compact />
               </article>
             ))}

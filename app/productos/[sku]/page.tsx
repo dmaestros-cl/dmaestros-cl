@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ProductActions } from "@/components/ProductActions";
 import { ProductGallery } from "@/components/ProductGallery";
+import { ProductShippingNote } from "@/components/ProductShippingNote";
 import { SiteHeader } from "@/components/SiteHeader";
 import { createClient } from "@/lib/supabase/server";
 import { parseProductShippingScope } from "@/lib/product-shipping";
@@ -58,7 +59,7 @@ export default async function ProductPage({
     <div className="shop-shell">
       <SiteHeader />
       <main className="product-detail-page">
-        <ProductGallery name={product.name} primaryImage={product.image} images={gallery} youtubeUrl={product.youtubeUrl} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} available={product.available} shippingScope={product.shippingScope} />
+        <ProductGallery name={product.name} primaryImage={product.image} images={gallery} youtubeUrl={product.youtubeUrl} price={product.saleMode === "buy" ? product.price : undefined} salePrice={product.salePrice} available={product.available} />
         <section className="product-detail-copy">
           <p>
             {product.category} · {product.sku}
@@ -80,6 +81,7 @@ export default async function ProductPage({
               `$${product.price.toLocaleString("es-CL")}`
             )}
           </strong>}
+          <ProductShippingNote scope={product.shippingScope} />
           <ProductActions
             product={product}
             whatsappNumber={settings?.whatsapp_number ?? ""}
