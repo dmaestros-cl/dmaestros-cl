@@ -98,7 +98,7 @@ export function HomeCategoryShowcase({
                 <p>{product.sku}</p>
                 <h4>{product.name}</h4>
                 <ProductCardPrice product={product} />
-                <ProductShippingNote scope={product.shippingScope} />
+                <ProductShippingNote scope={product.shippingScope} installation={product.installationRequired} />
                 <ProductActions
                   product={product}
                   whatsappNumber={whatsappNumber}

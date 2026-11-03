@@ -88,7 +88,7 @@ export function ShopCatalog({ initialCategory, initialQuery = "", products, cate
                 <p>{product.category} · {product.sku}</p>
                 <h2>{product.name}</h2>
                 <ProductCardPrice product={product} />
-                <ProductShippingNote scope={product.shippingScope} />
+                <ProductShippingNote scope={product.shippingScope} installation={product.installationRequired} />
                 <ProductActions product={product} whatsappNumber={whatsappNumber} compact />
               </article>
             ))}

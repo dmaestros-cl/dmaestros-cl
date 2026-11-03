@@ -437,6 +437,35 @@ test("free shipping: actual migration, admin-only persistence and authoritative 
     await setRole('authenticated',adminId);
     for (const price of [0,-1,null,1000000000]) await assert.rejects(db.query("update public.products set shipping_fallback_price=$1 where sku='A'",[price]),/check constraint/);
   });
+  await t.test("standard commune prices work per unit without measurements, but installation always needs coordination", async () => {
+    await setRole("service_role");
+    await db.exec(await migration("20261103130000_standard_shipping_installation"));
+    await setRole("authenticated",adminId);
+    await db.exec("update public.products set package_length_cm=null,package_weight_kg=null,package_width_cm=null,package_height_cm=null where sku='A'; update public.shipping_rates set price=5990 where commune_code='13101'");
+    const standard = await create({total:13980});
+    assert.equal(Number((await order(standard)).shipping_cost),11980);
+    await assert.rejects(create({total:2000}),/precio o despacho/);
+    await db.exec("update public.products set package_weight_kg=1 where sku='A'; update public.shipping_rates set price=6990 where commune_code='05101'");
+    assert.equal((await create({region:'CL-VS',commune:'05101',total:15980})).amount,15980);
+    // Mixed cart: one standard unit (5990) and two measured units (3100 each).
+    assert.equal((await create({items:[{sku:'A',quantity:1},{sku:'B',quantity:2}],total:17190})).amount,17190);
+    await db.exec("update public.shipping_settings set quantity_discount_enabled=true,quantity_discount_min_units=2,quantity_discount_percent=50");
+    assert.equal((await create({total:7990})).amount,7990);
+    await db.exec("update public.shipping_settings set quantity_discount_enabled=false,calculation_mode='highest'");
+    assert.equal((await create({total:7990})).amount,7990);
+    await db.exec("update public.shipping_settings set calculation_mode='per_unit'; update public.shipping_rates set blue_enabled=false where commune_code='13101'");
+    assert.equal((await create({total:52000})).amount,52000);
+    await db.exec("update public.shipping_rates set blue_enabled=true,active=false where commune_code='13101'");
+    await assert.rejects(create({total:13980}),/comuna/);
+    await db.exec("update public.shipping_rates set active=true where commune_code='13101'; update public.products set installation_required=true,shipping_scope='rm' where sku='A'; update public.shipping_settings set mode='all'");
+    for (const args of [{total:2000},{region:'CL-VS',commune:'',total:2000},{items:[{sku:'B',quantity:1},{sku:'A',quantity:1}],total:3000}]) {
+      await assert.rejects(create(args),/instalación a coordinar/);
+    }
+    assert.equal((await create({id:standard.id,total:13980})).created,false);
+    await setRole("authenticated",customerId);
+    assert.equal((await db.query("update public.products set installation_required=false where sku='A' returning id")).rows.length,0);
+    assert.equal((await db.query("update public.shipping_rates set price=0 where commune_code='13101' returning price")).rows.length,0);
+  });
   await t.test("database rejects invalid thresholds and revoking admin privileges immediately blocks changes", async () => {
     await setRole("authenticated", adminId);
     for (const minimum of [0, -1, null, 1000000000]) {

@@ -3,7 +3,7 @@ import { parseProductShippingPrice } from "./product-shipping-price.ts";
 export const BLUE_SOURCE_URL = "https://www.blue.cl/docs/enviar/tarifario-pyme.pdf";
 export const BLUE_BANDS = ["xs", "s", "m", "l"] as const;
 export const BLUE_LIMITS = [0.5, 3, 6, 20];
-export const BLUE_PRODUCT_COLUMNS = "shipping_automatic,package_weight_kg,package_length_cm,package_width_cm,package_height_cm,shipping_fallback_mode,shipping_fallback_price";
+export const BLUE_PRODUCT_COLUMNS = "shipping_automatic,installation_required,package_weight_kg,package_length_cm,package_width_cm,package_height_cm,shipping_fallback_mode,shipping_fallback_price";
 export const BLUE_RATE_COLUMNS = "blue_enabled,blue_zone,blue_xs,blue_s,blue_m,blue_l";
 export type BlueZone = "santiago" | "centro" | "extremo" | "pendiente";
 export const BLUE_ZONE_LABELS: Record<BlueZone, string> = { santiago: "Santiago", centro: "Centro", extremo: "Extremo", pendiente: "Por confirmar" };
@@ -13,6 +13,7 @@ export type BlueTariff = { region_code: string; xs: number; s: number; m: number
 export type BlueCommune = { commune_code: string; region_code: string; blue_enabled: boolean; blue_zone: BlueZone; blue_xs: number | null; blue_s: number | null; blue_m: number | null; blue_l: number | null };
 export type ProductPackage = {
   shipping_automatic: boolean;
+  installation_required: boolean;
   package_weight_kg: number | null;
   package_length_cm: number | null;
   package_width_cm: number | null;
@@ -24,6 +25,11 @@ export type FreightSettings = { shipping_fallback_mode: "coordinate" | "fixed"; 
 export class AutomaticShippingUnavailable extends Error {}
 export class FreightCoordinationRequired extends Error {}
 export type BlueConfiguration = { originRegion: string | null; originZone: BlueZone | null; tariffs: BlueTariff[] };
+export const INSTALLATION_NOTICE = "Flete e instalación a coordinar";
+
+export function hasCompletePackage(p: ProductPackage) {
+  return [p.package_weight_kg, p.package_length_cm, p.package_width_cm, p.package_height_cm].every(value => value != null);
+}
 
 export function parseProductPackage(row: Record<string, unknown>, requireComplete = true): ProductPackage {
   const measurement = (key: string, decimals: number) => {
@@ -36,12 +42,13 @@ export function parseProductPackage(row: Record<string, unknown>, requireComplet
   };
   const result = {
     shipping_automatic: true,
+    installation_required: row.installation_required === true,
     package_weight_kg: measurement("package_weight_kg", 3),
     package_length_cm: measurement("package_length_cm", 1),
     package_width_cm: measurement("package_width_cm", 1),
     package_height_cm: measurement("package_height_cm", 1),
   };
-  if (requireComplete && Object.entries(result).some(([key, value]) => key !== "shipping_automatic" && value === null)) throw new Error("Completa el peso, largo, ancho y alto del producto embalado para calcular el despacho automático.");
+  if (requireComplete && !hasCompletePackage(result)) throw new Error("Completa el peso, largo, ancho y alto del producto embalado para calcular el despacho automático.");
   return result;
 }
 
@@ -54,7 +61,8 @@ export function parseFreightSettings(row: Record<string, unknown>): FreightSetti
 }
 
 export function packageFromForm(form: FormData): ProductPackage & FreightSettings {
-  return { ...parseProductPackage(Object.fromEntries(["package_weight_kg", "package_length_cm", "package_width_cm", "package_height_cm"].map(key => [key, form.get(key)]))),
+  return { ...parseProductPackage(Object.fromEntries(["package_weight_kg", "package_length_cm", "package_width_cm", "package_height_cm"].map(key => [key, form.get(key)])), false),
+    installation_required: form.get("delivery_type") === "installation",
     ...parseFreightSettings({ shipping_fallback_mode: form.get("shipping_fallback_mode") ?? "coordinate", shipping_fallback_price: form.get("shipping_fallback_price") }) };
 }
 
@@ -84,8 +92,19 @@ export function blueUnitPrice(input: ProductPackage, destination: BlueCommune, c
   return base;
 }
 
-export function productDeliveryQuote(input: ProductPackage, destination: BlueCommune, config: BlueConfiguration): { price: number; method: "automatic" | "freight" } {
-  try { return { price: blueUnitPrice(input, destination, config), method: "automatic" }; }
+export function productDeliveryQuote(input: ProductPackage, destination: BlueCommune & { price: number }, config: BlueConfiguration): { price: number; method: "automatic" | "standard" | "freight" } {
+  if (input.installation_required) throw new FreightCoordinationRequired(INSTALLATION_NOTICE);
+  try {
+    if (hasCompletePackage(input)) return { price: blueUnitPrice(input, destination, config), method: "automatic" };
+    // A missing measurement must not erase a known carrier limit, e.g. a 2 m long piece.
+    const sides = [input.package_length_cm, input.package_width_cm, input.package_height_cm];
+    const volumeUnits = sides.reduce<number>((total, cm) => total * Math.round((cm ?? 0) * 10), 1);
+    if (!destination.blue_enabled || sides.some(cm => (cm ?? 0) > 70) || (input.package_weight_kg ?? 0) > 20 || volumeUnits > 20 * 4_000_000)
+      throw new AutomaticShippingUnavailable("El producto requiere flete especial para este destino.");
+    const price = parseProductShippingPrice(destination.price);
+    if (price === null) throw new Error("La tarifa estándar de esta comuna no está configurada.");
+    return { price, method: "standard" };
+  }
   catch (error) {
     if (!(error instanceof AutomaticShippingUnavailable)) throw error;
     const freight = parseFreightSettings(input);

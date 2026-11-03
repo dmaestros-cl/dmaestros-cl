@@ -15,6 +15,7 @@ export type CatalogProduct = {
   images?: string[];
   youtubeUrl?: string;
   shippingScope?: ProductShippingScope | null;
+  installationRequired?: boolean;
 };
 
 export const products: readonly CatalogProduct[] = [

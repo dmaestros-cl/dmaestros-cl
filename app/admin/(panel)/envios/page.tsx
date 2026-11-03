@@ -24,7 +24,7 @@ export default async function ShippingPage() {
     try { rules = parseShippingRules(settingsResult.data); } catch { /* Show the unavailable state. */ }
   }
   return <>
-    <AdminPageHeader eyebrow="Logística" title="Envíos" description="Configura el origen, las tarifas por peso y las excepciones por comuna. Ingresa las medidas del embalaje en cada producto." action={<Link className="admin-secondary-button" href="/admin/productos">Tarifas por producto</Link>} />
+    <AdminPageHeader eyebrow="Logística" title="Envíos" description="Configura las tarifas por peso y el valor estándar de cada comuna para productos sin datos completos de embalaje." action={<Link className="admin-secondary-button" href="/admin/productos">Editar productos</Link>} />
     <AdminBlueShipping regions={(regions ?? []) as ShippingRegion[]} communes={rates ?? []} initialTariffs={tariffsResult.error ? null : tariffsResult.data as BlueTariff[]} initialOrigin={settingsResult.data?.origin_commune_code ?? null} />
     <AdminShippingRules initialRules={rules} />
     <AdminFreeShippingSettings initialSettings={settings} />

@@ -9,7 +9,7 @@ import { productShipsOnlyToRM } from "@/lib/product-shipping";
 import { productShippingQuote, parseShippingRules, SHIPPING_RULES_COLUMNS, type ShippingRules } from "@/lib/product-shipping-price";
 import { parseShippingSettings, qualifiesForFreeShipping, shippingCostForSubtotal, SHIPPING_SETTINGS_COLUMNS, type ShippingSettings } from "@/lib/shipping-policy";
 
-import { BLUE_PRODUCT_COLUMNS, BLUE_RATE_COLUMNS, productDeliveryQuote, FreightCoordinationRequired, parseFreightSettings, parseProductPackage, type ProductPackage, type BlueCommune, type BlueConfiguration, type BlueTariff, type BlueZone } from "@/lib/blue-shipping";
+import { BLUE_PRODUCT_COLUMNS, BLUE_RATE_COLUMNS, INSTALLATION_NOTICE, productDeliveryQuote, FreightCoordinationRequired, parseFreightSettings, parseProductPackage, type ProductPackage, type BlueCommune, type BlueConfiguration, type BlueTariff, type BlueZone } from "@/lib/blue-shipping";
 
 type ShippingProduct = ProductPackage & { sku: string; name: string; rmOnly: boolean };
 
@@ -72,8 +72,9 @@ export default function CheckoutPage() {
     [rates, regionCode],
   );
   const selectedRate = rates.find((rate) => rate.commune_code === communeCode && rate.region_code === regionCode);
+  const installationProduct = shippingProducts.find(product => product.installation_required);
   const requiresPickup = Boolean(
-    regionCode &&
+    !installationProduct && regionCode &&
     regionCode !== "CL-RM" &&
     shippingProducts.some((product) => product.rmOnly),
   );
@@ -82,25 +83,29 @@ export default function CheckoutPage() {
     try {
       if (!rules || !config) throw new Error("No pudimos verificar las reglas de despacho.");
       let specialFreight = false;
+      let standard = false;
       const quote = productShippingQuote(items.map((item) => {
         const product = products.find((entry) => entry.sku === item.product.sku);
         if (!product) throw new Error("No pudimos verificar el despacho de los productos.");
-        if ([product.package_weight_kg, product.package_length_cm, product.package_width_cm, product.package_height_cm].some(value => value === null)) throw new Error(`Aún faltan los datos de embalaje de «${product.name}». Contacta a DMaestros para completar el cálculo de envío.`);
         const delivery = productDeliveryQuote(product, rate, config);
+        standard ||= delivery.method === "standard";
         specialFreight ||= delivery.method === "freight";
         return { shippingPrice: delivery.price, quantity: item.quantity };
       }), 0, rules);
-      return { ...quote, error: "", specialFreight, needsCoordination: false };
+      return { ...quote, error: "", specialFreight, standard, needsCoordination: false };
     } catch (error) {
-      return { base: 0, discount: 0, total: 0, specialFreight: false, needsCoordination: error instanceof FreightCoordinationRequired, error: error instanceof Error ? error.message : "Contacta a DMaestros para cotizar este despacho." };
+      return { base: 0, discount: 0, total: 0, specialFreight: false, standard: false, needsCoordination: error instanceof FreightCoordinationRequired, error: error instanceof Error ? error.message : "Contacta a DMaestros para cotizar este despacho." };
     }
   }
-  const freeShipping = !requiresPickup && shippingSettings !== null && qualifiesForFreeShipping(subtotal, shippingSettings);
-  const shippingQuote = coverageReady && selectedRate && !requiresPickup ? quoteShipping(shippingProducts, selectedRate) : { base: 0, discount: 0, total: 0, error: "", specialFreight: false, needsCoordination: false };
+  const freeShipping = !installationProduct && !requiresPickup && shippingSettings !== null && qualifiesForFreeShipping(subtotal, shippingSettings);
+  const shippingQuote = coverageReady && selectedRate && !requiresPickup && !installationProduct ? quoteShipping(shippingProducts, selectedRate) : {
+    base: 0, discount: 0, total: 0, specialFreight: false, standard: false, needsCoordination: Boolean(installationProduct),
+    error: installationProduct ? `Coordina con DMaestros la entrega e instalación de «${installationProduct.name}» antes de pagar.` : "",
+  };
   const shippingCost = requiresPickup || freeShipping ? 0 : shippingQuote.total;
   const shippingDiscount = requiresPickup || freeShipping ? 0 : shippingQuote.discount;
   const total = subtotal + shippingCost;
-  const freightMessage = `Hola DMaestros, quisiera coordinar el flete a ${selectedRate?.commune_name ?? "mi comuna"} para: ${items.map(item => `${item.quantity} × ${item.product.name} (${item.product.sku})`).join(", ")}. Necesito confirmar el valor y las condiciones de entrega antes de pagar.`;
+  const freightMessage = `Hola DMaestros, quisiera coordinar ${installationProduct ? "el flete y la instalación" : "el flete"} a ${selectedRate?.commune_name ?? "mi comuna"} para: ${items.map(item => `${item.quantity} × ${item.product.name} (${item.product.sku})`).join(", ")}. Necesito confirmar el valor y las condiciones de entrega antes de pagar.`;
   const freightContact = freightPhone ? `https://wa.me/${freightPhone}?text=${encodeURIComponent(freightMessage)}` : "/informacion/contacto";
 
   useEffect(() => {
@@ -201,6 +206,7 @@ export default function CheckoutPage() {
       setShippingSettings(currentSettings);
       setShippingRules(currentRules);
       setShippingProducts(latestProducts);
+      if (latestProducts.some(product => product.installation_required)) throw new Error(`${INSTALLATION_NOTICE}. Contacta a DMaestros antes de pagar.`);
       if (!currentPickup && (!currentQuote || currentQuote.error)) throw new Error(currentQuote?.error || "Selecciona una comuna con despacho disponible.");
       const currentCost = currentPickup ? 0 : shippingCostForSubtotal(currentQuote!.total, subtotal, currentSettings);
       if (currentCost !== shippingCost || currentPickup !== requiresPickup) throw new Error("Las condiciones de envío cambiaron. Revisa el nuevo total y vuelve a pulsar Pagar.");
@@ -330,12 +336,13 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                 ) : shippingQuote.error ? (
-                  <div className="checkout-delivery-note" role="alert"><strong>{shippingQuote.needsCoordination ? "Flete por coordinar" : "Datos de despacho pendientes"}</strong><span>{shippingQuote.error}</span><a href={freightContact} target={freightPhone ? "_blank" : undefined} rel={freightPhone ? "noreferrer" : undefined}>{shippingQuote.needsCoordination ? "Coordinar flete con DMaestros" : "Consultar despacho"}</a></div>
+                  <div className="checkout-delivery-note" role="alert"><strong>{installationProduct ? INSTALLATION_NOTICE : shippingQuote.needsCoordination ? "Flete por coordinar" : "Datos de despacho pendientes"}</strong><span>{shippingQuote.error}</span><a href={freightContact} target={freightPhone ? "_blank" : undefined} rel={freightPhone ? "noreferrer" : undefined}>{installationProduct ? "Coordinar flete e instalación" : shippingQuote.needsCoordination ? "Coordinar flete con DMaestros" : "Consultar despacho"}</a></div>
                 ) : selectedRate && coverageReady ? (
                   <div className="checkout-delivery-note">
                     <strong>
                       {shippingCost === 0 ? "Despacho gratis" : `Despacho: $${shippingCost.toLocaleString("es-CL")}`}
                     </strong>
+                    {shippingQuote.standard && <span>Se aplica la tarifa estándar de la comuna a los productos sin peso o medidas completas.</span>}
                     <span>
                       {shippingQuote.specialFreight ? "Incluye flete especial definido por DMaestros. El plazo y las condiciones de entrega se coordinan con la tienda." : `Entrega estimada: ${selectedRate.estimated_days_min}–${selectedRate.estimated_days_max} días hábiles.`}
                     </span>
@@ -378,7 +385,7 @@ export default function CheckoutPage() {
                   <strong>{shippingQuote.error ? "Por confirmar" : `$${total.toLocaleString("es-CL")}`}</strong>
                 </div>
                 <p>
-                  {requiresPickup
+                  {shippingQuote.needsCoordination ? "Confirma las condiciones de entrega con DMaestros antes de pagar." : requiresPickup
                     ? "El pedido deberá retirarse en el taller de DMaestros."
                     : freeShipping
                       ? "Tu compra tiene envío gratis a las comunas con despacho disponible."
@@ -387,6 +394,7 @@ export default function CheckoutPage() {
                         : shippingRules?.quantity_discount_enabled
                           ? `${shippingRules.quantity_discount_percent}% de descuento en despacho desde ${shippingRules.quantity_discount_min_units} unidades.`
                         : shippingQuote.specialFreight ? "El flete especial se cobra por unidad y respeta las reglas de despacho de la tienda."
+                        : shippingQuote.standard ? "El total incluye el despacho estándar según la comuna y las cantidades."
                         : "Despacho calculado automáticamente según peso, medidas, cantidades y comuna de destino."}
                 </p>
               </aside>

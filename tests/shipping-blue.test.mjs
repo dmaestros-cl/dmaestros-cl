@@ -4,7 +4,7 @@ import { bluePackageSize, blueUnitPrice, parseProductPackage, packageFromForm, p
 import { productShippingQuote, DEFAULT_SHIPPING_RULES } from "../lib/product-shipping-price.ts";
 
 const parcel = { shipping_automatic: true, package_weight_kg: 1, package_length_cm: 10, package_width_cm: 10, package_height_cm: 10 };
-const destination = { commune_code: "vs0101", region_code: "CL-VS", blue_enabled: true, blue_zone: "centro", blue_xs: null, blue_s: null, blue_m: null, blue_l: null };
+const destination = { price: 5990, commune_code: "vs0101", region_code: "CL-VS", blue_enabled: true, blue_zone: "centro", blue_xs: null, blue_s: null, blue_m: null, blue_l: null };
 const config = { originRegion: "CL-RM", originZone: "santiago", tariffs: [
   { region_code: "local", xs: 3100, s: 4200, m: 4800, l: 5400 },
   { region_code: "central", xs: 4300, s: 5600, m: 7300, l: 9200 },
@@ -41,14 +41,19 @@ test("missing and invalid measurements do not become invented prices; oversize r
   assert.equal(parseProductPackage({...parcel,package_weight_kg:null},false).package_weight_kg,null);
 });
 
-test("entering measurements always enables automatic shipping without a mode or price", () => {
+test("new and edited products can save empty or partial measurements without choosing installation", () => {
   const form = new FormData();
   for (const [key,value] of Object.entries(parcel)) if (key !== 'shipping_automatic') form.set(key,String(value));
   assert.equal(packageFromForm(form).shipping_automatic,true);
   form.set('shipping_automatic','false'); form.set('shipping_price','1');
   assert.equal(packageFromForm(form).shipping_automatic,true);
   form.delete('package_weight_kg');
-  assert.throws(()=>packageFromForm(form),/Completa/);
+  assert.equal(packageFromForm(form).package_weight_kg,null);
+  assert.equal(packageFromForm(new FormData()).installation_required,false);
+  form.set("delivery_type","installation");
+  assert.equal(packageFromForm(form).installation_required,true);
+  form.set("package_length_cm","-1");
+  assert.throws(()=>packageFromForm(form),/positivas/);
 });
 
 test("special freight is only used outside automatic coverage and coordination never means free", () => {
@@ -59,7 +64,16 @@ test("special freight is only used outside automatic coverage and coordination n
   for (const oversized of [{package_length_cm:80},{package_weight_kg:21},{package_length_cm:50,package_width_cm:50,package_height_cm:50}]) {
     assert.throws(()=>productDeliveryQuote({...parcel,...oversized},destination,config),FreightCoordinationRequired);
   }
-  assert.throws(()=>productDeliveryQuote({...fixed,package_weight_kg:null},destination,config),/Completa/);
+  for (const field of ["package_weight_kg","package_length_cm","package_width_cm","package_height_cm"]) {
+    assert.deepEqual(productDeliveryQuote({...fixed,[field]:null},destination,config),{price:5990,method:'standard'});
+  }
+  const empty = packageFromForm(new FormData());
+  assert.deepEqual(productDeliveryQuote(empty,{...destination,price:18990},config),{price:18990,method:'standard'});
+  assert.deepEqual(productDeliveryQuote(empty,{...destination,price:0},config),{price:0,method:'standard'});
+  assert.throws(()=>productDeliveryQuote(empty,{...destination,price:null},config),/estándar/);
+  assert.throws(()=>productDeliveryQuote({...empty,package_length_cm:75},destination,config),FreightCoordinationRequired);
+  assert.throws(()=>productDeliveryQuote(empty,{...destination,blue_enabled:false},config),FreightCoordinationRequired);
+  assert.throws(()=>productDeliveryQuote({...fixed,installation_required:true},destination,config),/instalación/);
   assert.throws(()=>productDeliveryQuote({...fixed,package_length_cm:80},destination,{...config,originRegion:null}),/origen/);
   assert.throws(()=>productDeliveryQuote({...fixed,package_length_cm:80},destination,{...config,tariffs:[]}),/tarifa/);
   for (const price of [null,0,-1,1.5,1000000000]) assert.throws(()=>parseFreightSettings({...fixed,shipping_fallback_price:price}));

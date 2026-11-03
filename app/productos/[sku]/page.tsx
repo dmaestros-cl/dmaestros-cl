@@ -18,7 +18,7 @@ export default async function ProductPage({
     supabase
       .from("products")
       .select(
-        "sku,slug,name,description,image_url,price,sale_price,stock,available,sale_mode,youtube_url,shipping_scope,categories(name),product_images(public_url,sort_order)",
+        "sku,slug,name,description,image_url,price,sale_price,stock,available,sale_mode,youtube_url,shipping_scope,installation_required,categories(name),product_images(public_url,sort_order)",
       )
       .or(
         `slug.eq.${decodeURIComponent(sku)},sku.eq.${decodeURIComponent(sku)}`,
@@ -52,6 +52,7 @@ export default async function ProductPage({
     saleMode: data.sale_mode,
     youtubeUrl: data.youtube_url,
     shippingScope: parseProductShippingScope(data.shipping_scope),
+    installationRequired: data.installation_required,
     category: category?.name ?? "Sin categoría",
   } as const;
   const videoEmbedUrl = getYouTubeEmbedUrl(product.youtubeUrl);
@@ -81,7 +82,7 @@ export default async function ProductPage({
               `$${product.price.toLocaleString("es-CL")}`
             )}
           </strong>}
-          <ProductShippingNote scope={product.shippingScope} />
+          <ProductShippingNote scope={product.shippingScope} installation={product.installationRequired} />
           <ProductActions
             product={product}
             whatsappNumber={settings?.whatsapp_number ?? ""}

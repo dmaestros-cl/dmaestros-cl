@@ -1,16 +1,16 @@
 # Despacho automático
 
-El flujo normal de despacho usa peso y medidas del producto embalado. En Productos → Editar se ingresan peso (kg), largo, ancho y alto (cm). No se elige modalidad ni se escribe un precio para los envíos con cobertura automática.
+En Productos → Nuevo producto o Editar → Tipo de entrega, **Despacho a domicilio** es el valor inicial. El peso (kg), largo, ancho y alto (cm) del embalaje son opcionales al crear y editar. Con todos los datos se aplica el tarifario por peso y volumen. Si falta alguno, se cobra por unidad la **tarifa estándar** de la comuna elegida, editable en Envíos → Editar envío a [comuna]. No se inventan medidas ni se usa el precio del producto para estimar el envío.
 
 Al elegir la comuna en el checkout, cada unidad se calcula como un bulto. Se usa el mayor entre peso físico y largo × ancho × alto / 4.000. La cobertura Solo RM, el retiro fuera de RM, las promociones y las reglas de cantidades se conservan.
 
-Los productos existentes sin datos de embalaje aparecen pendientes en el panel. No se inventan medidas ni se cobra una tarifa fija de reemplazo. Para guardar la ficha se requieren los cuatro datos. Los intentos de pago existentes mantienen sus importes.
+El administrador también puede elegir **Flete e instalación a coordinar** para cualquier producto, sin que lo determine la categoría. La tienda muestra esa condición en el catálogo y en la ficha; el comprador coordina con DMaestros antes de pagar. Los carritos con instalación no pueden pasar a Webpay, ni siquiera mediante una promoción o retiro en taller. Cambiar a instalación no modifica las medidas guardadas. Los intentos de pago existentes mantienen sus importes.
 
 ## Tarifas y cobertura
 
 En Envíos se configura el origen (Santiago), los precios por tramo y las excepciones por comuna. Las zonas de referencia son Santiago, Centro y Extremo. Dentro de la misma zona y región se usa Local; Santiago/Centro y Centro entre regiones usan Central; los demás trayectos que involucran Extremo usan Extremo.
 
-Un valor por comuna vacío hereda la tarifa de su trayecto y cero significa gratis. Las antiguas tarifas planas por producto o comuna ya no intervienen en el cálculo.
+Un valor por comuna vacío hereda la tarifa de su trayecto y cero significa gratis. El valor estándar de la comuna es independiente de los tramos por peso; modificarlo no cambia las tarifas de productos con embalaje completo. Un destino sin cobertura o un límite excedido comprobable con las medidas disponibles conserva la regla de flete especial.
 
 Fuentes consultadas el 2026-11-02:
 
@@ -27,13 +27,15 @@ El usuario autorizó expresamente dos opciones solo cuando no se disponga de env
 - **Coordinar flete antes de pagar** (predeterminado): el checkout muestra “Flete por coordinar”, total por confirmar y un enlace a WhatsApp con productos, cantidades y comuna. No crea un pago ni presenta el envío como gratuito. Si la tienda no tiene WhatsApp configurado, lleva a Contacto.
 - **Definir valor de flete**: el administrador ingresa explícitamente un importe positivo por unidad, IVA incluido, confirmado para los destinos permitidos por la cobertura del producto. Se aplican las reglas del carrito y se informa al comprador que el plazo del flete se coordina con la tienda.
 
-La cotización automática siempre tiene prioridad, aunque exista un valor de flete guardado. La excepción solo se activa por dimensiones/peso fuera del tarifario o por un destino sin cobertura automática. No oculta errores de configuración, no habilita comunas desactivadas y no sustituye medidas faltantes. Coordinar flete tampoco se omite por una promoción de envío gratis.
+La cotización automática siempre tiene prioridad, aunque exista un valor de flete guardado. La excepción solo se activa por dimensiones/peso fuera del tarifario o por un destino sin cobertura automática. No habilita comunas desactivadas. En despacho ordinario con datos incompletos se usa la tarifa estándar, salvo que se conozca un límite excedido o no haya cobertura. Coordinar flete tampoco se omite por una promoción de envío gratis.
 
 La migración 20261102224000_exceptional_freight incorpora shipping_fallback_mode y shipping_fallback_price, valida la elección y actualiza el cálculo autoritativo de nuevos pedidos. Los precios anteriores y los intentos de pago ya creados se conservan.
 
 ## Reglas del carrito
 
 En Envíos → Reglas del carrito se puede sumar por unidad o cobrar solo el mayor envío. El descuento opcional por cantidad tiene mínimo inclusivo de unidades y porcentaje de 1 a 100. Se cuentan unidades aunque compartan SKU; el resultado se redondea al peso, con medios pesos hacia arriba. Las promociones de envío gratis se aplican después, sin habilitar destinos o bultos sin cobertura.
+
+La migración 20261103130000_standard_shipping_installation habilita la decisión de instalación por producto y recupera la tarifa estándar de shipping_rates.price para fichas incompletas. Ninguna categoría se marca automáticamente como instalación.
 
 ## Integridad y verificación
 

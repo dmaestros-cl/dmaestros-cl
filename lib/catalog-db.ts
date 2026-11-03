@@ -12,7 +12,7 @@ export async function getPublicCatalog() {
     supabase
       .from("products")
       .select(
-        "sku,slug,name,description,image_url,price,sale_price,stock,available,sale_mode,youtube_url,shipping_scope,categories!inner(name,active),product_images(public_url,sort_order)",
+        "sku,slug,name,description,image_url,price,sale_price,stock,available,sale_mode,youtube_url,shipping_scope,installation_required,categories!inner(name,active),product_images(public_url,sort_order)",
       )
       .eq("active", true)
       .eq("categories.active", true)
@@ -43,6 +43,7 @@ export async function getPublicCatalog() {
       available: product.available,
       youtubeUrl: product.youtube_url ?? undefined,
       shippingScope: parseProductShippingScope(product.shipping_scope),
+      installationRequired: product.installation_required,
       images: [...product.product_images]
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((image) => image.public_url),
